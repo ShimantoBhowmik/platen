@@ -86,6 +86,31 @@ Returns `200` while the process is up.
 * Consistency is `100 * (1 - cv)` of the intervals between keys. `cv` is the coefficient of
   variation: standard deviation divided by mean.
 
+## Mistake breakdown
+
+Every result also has a `breakdown` that shows the learner what to practise:
+
+```json
+"breakdown": {
+  "keys": [
+    { "key": "r", "hits": 1, "misses": 1 },
+    { "key": " ", "hits": 8, "misses": 1 }
+  ],
+  "missed_words": [{ "expected": "after", "typed": "aftez" }]
+}
+```
+
+* `keys` lists every key the text asked for, weakest first. The order is miss rate, then
+  miss count. Each keystroke counts toward the key the text expected at that position.
+  Corrected typos count as misses.
+* A space typed too early counts as a miss on the skipped letter. A space that commits a
+  full-length wrong word counts as a missed space.
+* Letters typed past the end of a word have no expected key. They count only in
+  `incorrect_keystrokes`.
+* `missed_words` lists the words left wrong when committed, in typing order. The unfinished
+  last word of a time test is not listed.
+* The breakdown is stored with the result, so share links show it too.
+
 ## Design notes
 
 * **Stateless tests.** The token is `uuid | issued_at | mode`, signed with HMAC-SHA256. The

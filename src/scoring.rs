@@ -6,9 +6,14 @@
 //! previous word, and WPM counts the characters of correctly typed words (plus their spaces)
 //! divided by five per minute.
 //!
+//! The same replay also produces a [`Breakdown`] of the learner's mistakes: how often each key
+//! of the text was hit or missed, and which words were committed wrong.
+//!
 //! Everything here is pure: it takes the clock as an argument, so it is fully unit-testable.
 
-use serde::Serialize;
+use std::cmp::Ordering;
+
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::mode::{MAX_RAW_WPM, TestMode};
@@ -49,6 +54,72 @@ pub struct TestStats {
     pub incorrect_keystrokes: u32,
     /// Duration the scores are computed over, in milliseconds.
     pub elapsed_ms: u32,
+}
+
+/// How the learner did on one key of the text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KeyStat {
+    /// The key the text asked for: a lowercase letter, or `' '` for the space bar.
+    pub key: char,
+    /// Keystrokes that typed this key where the text expected it.
+    pub hits: u32,
+    /// Keystrokes that typed something else where the text expected this key. A space that
+    /// commits a mistyped full-length word counts as a missed space.
+    pub misses: u32,
+}
+
+/// A word committed with errors, as the learner left it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MissedWord {
+    /// The word in the text.
+    pub expected: String,
+    /// What the learner typed instead.
+    pub typed: String,
+}
+
+/// What the learner should practise next.
+///
+/// Corrected typos still count in `keys`, since the key was missed when typed. `missed_words`
+/// holds only the words left wrong. Keystrokes past the end of a word have no expected key and
+/// appear only in [`TestStats::incorrect_keystrokes`].
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct Breakdown {
+    /// Every key the text asked for, weakest first: highest miss rate, then most misses.
+    pub keys: Vec<KeyStat>,
+    /// Committed words that differ from the text, in typing order.
+    pub missed_words: Vec<MissedWord>,
+}
+
+/// The full outcome of scoring a submission.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Scored {
+    /// The verified speed and accuracy numbers.
+    pub stats: TestStats,
+    /// The mistake breakdown for the learner.
+    pub breakdown: Breakdown,
+}
+
+/// Hits and misses for one expected key, indexed by its ASCII byte in [`Replay`].
+#[derive(Debug, Clone, Copy, Default)]
+struct KeyTally {
+    hits: u32,
+    misses: u32,
+}
+
+impl KeyTally {
+    fn attempts(self) -> u32 {
+        self.hits + self.misses
+    }
+}
+
+/// Orders tallies weakest first. Miss rates are compared by cross-multiplying, which is exact
+/// where float division could tie wrongly.
+fn weaker_first(a: &KeyStat, b: &KeyStat) -> Ordering {
+    let attempts = |stat: &KeyStat| u64::from(stat.hits + stat.misses);
+    (u64::from(b.misses) * attempts(a))
+        .cmp(&(u64::from(a.misses) * attempts(b)))
+        .then(b.misses.cmp(&a.misses))
+        .then(a.key.cmp(&b.key))
 }
 
 /// Why a submission was refused.
@@ -101,7 +172,7 @@ pub enum Rejection {
 ///
 /// # Returns
 ///
-/// The verified [`TestStats`].
+/// The verified [`TestStats`] and the learner's mistake [`Breakdown`].
 ///
 /// # Errors
 ///
@@ -110,15 +181,15 @@ pub enum Rejection {
 /// # Examples
 ///
 /// ```ignore
-/// let stats = evaluate(&ticket, "the be", &[0, 150, 300, 450, 600, 750], now_ms)?;
-/// assert!(stats.wpm > 0.0);
+/// let scored = evaluate(&ticket, "the be", &[0, 150, 300, 450, 600, 750], now_ms)?;
+/// assert!(scored.stats.wpm > 0.0);
 /// ```
 pub fn evaluate(
     ticket: &TestTicket,
     keys: &str,
     times_ms: &[u32],
     now_ms: u64,
-) -> Result<TestStats, Rejection> {
+) -> Result<Scored, Rejection> {
     if times_ms.len() > MAX_KEYSTROKES {
         return Err(Rejection::TooManyKeystrokes);
     }
@@ -135,7 +206,7 @@ pub fn evaluate(
     if u64::from(replay.elapsed_ms) > since_issue_ms + CLOCK_TOLERANCE_MS {
         return Err(Rejection::SubmittedTooEarly);
     }
-    replay.into_stats()
+    replay.into_scored()
 }
 
 /// Running mean and variance of key intervals (Welford's one-pass algorithm).
@@ -179,8 +250,13 @@ struct Replay<'t> {
     word_chars: usize,
     correct_keystrokes: u32,
     incorrect_keystrokes: u32,
+    /// Per expected key, indexed by its ASCII byte. The text is ASCII, so a fixed array is an
+    /// exact, allocation-free map.
+    key_tallies: [KeyTally; 128],
     intervals: IntervalStats,
     elapsed_ms: u32,
+    /// Whether a word test reached its end. Always `false` for a time test.
+    finished: bool,
 }
 
 impl<'t> Replay<'t> {
@@ -198,8 +274,10 @@ impl<'t> Replay<'t> {
             word_chars: 0,
             correct_keystrokes: 0,
             incorrect_keystrokes: 0,
+            key_tallies: [KeyTally::default(); 128],
             intervals: IntervalStats::default(),
             elapsed_ms: 0,
+            finished: false,
         };
         let time_limit_ms = mode.time_limit_ms();
         let mut previous_ms = 0;
@@ -248,6 +326,7 @@ impl<'t> Replay<'t> {
             None if !finished => return Err(Rejection::Incomplete),
             None => {}
         }
+        replay.finished = finished;
         Ok(replay)
     }
 
@@ -263,18 +342,29 @@ impl<'t> Replay<'t> {
         self.word_index + 1 == self.targets.len()
     }
 
-    fn record(&mut self, correct: bool) {
+    /// Counts a character keystroke, crediting it to the key the text expected, if any.
+    fn record(&mut self, correct: bool, expected: Option<u8>) {
+        let tally = expected.map(|byte| &mut self.key_tallies[usize::from(byte)]);
         if correct {
             self.correct_keystrokes += 1;
+            if let Some(tally) = tally {
+                tally.hits += 1;
+            }
         } else {
             self.incorrect_keystrokes += 1;
+            if let Some(tally) = tally {
+                tally.misses += 1;
+            }
         }
     }
 
     /// Types one character. Returns `true` when it completes the last word correctly.
     fn character(&mut self, character: char) -> bool {
         let expected = self.target().as_bytes().get(self.word_chars).copied();
-        self.record(expected.is_some_and(|byte| char::from(byte) == character));
+        self.record(
+            expected.is_some_and(|byte| char::from(byte) == character),
+            expected,
+        );
         self.typed.push(character);
         self.word_chars += 1;
         self.is_last_word() && self.current_word() == self.target()
@@ -286,7 +376,14 @@ impl<'t> Replay<'t> {
             // Typing tests ignore a space before any letter of a word.
             return false;
         }
-        self.record(self.current_word() == self.target());
+        // A premature space misses the next letter; after a full word it is the space itself.
+        let expected = self
+            .target()
+            .as_bytes()
+            .get(self.word_chars)
+            .copied()
+            .unwrap_or(b' ');
+        self.record(self.current_word() == self.target(), Some(expected));
         if self.is_last_word() {
             return true;
         }
@@ -324,15 +421,28 @@ impl<'t> Replay<'t> {
         self.word_start = previous_start;
     }
 
+    /// Committed words paired with their targets. A finished word test also commits its last
+    /// word, which has no trailing space in `typed`.
+    fn committed_words(&self) -> impl Iterator<Item = (&str, &'static str)> {
+        let last = self.finished.then(|| (self.current_word(), self.target()));
+        self.typed[..self.word_start]
+            .split_terminator(' ')
+            .zip(self.targets.iter().copied())
+            .chain(last)
+    }
+
     /// Characters that count toward WPM: each correctly committed word plus its space, and
     /// the correct prefix of the word in progress.
     fn correct_chars(&self) -> usize {
-        let committed: usize = self.typed[..self.word_start]
-            .split_terminator(' ')
-            .zip(self.targets)
-            .filter(|(typed, target)| typed == *target)
+        let committed: usize = self
+            .committed_words()
+            .filter(|(typed, target)| typed == target)
             .map(|(typed, _)| typed.len() + 1)
             .sum();
+        if self.finished {
+            // The last word ends the test without a space, so it earns no space credit.
+            return committed - usize::from(self.current_word() == self.target());
+        }
         let current = self.current_word();
         let in_progress = if self.target().starts_with(current) {
             current.len()
@@ -342,7 +452,32 @@ impl<'t> Replay<'t> {
         committed + in_progress
     }
 
-    fn into_stats(self) -> Result<TestStats, Rejection> {
+    fn breakdown(&self) -> Breakdown {
+        let mut keys: Vec<KeyStat> = self
+            .key_tallies
+            .iter()
+            .enumerate()
+            .filter(|(_, tally)| tally.attempts() > 0)
+            .map(|(byte, tally)| KeyStat {
+                // Indices are below 128, so every one is an ASCII byte.
+                key: char::from(byte as u8),
+                hits: tally.hits,
+                misses: tally.misses,
+            })
+            .collect();
+        keys.sort_unstable_by(weaker_first);
+        let missed_words = self
+            .committed_words()
+            .filter(|(typed, target)| typed != target)
+            .map(|(typed, target)| MissedWord {
+                expected: target.to_owned(),
+                typed: typed.to_owned(),
+            })
+            .collect();
+        Breakdown { keys, missed_words }
+    }
+
+    fn into_scored(self) -> Result<Scored, Rejection> {
         let typed_keystrokes = self.correct_keystrokes + self.incorrect_keystrokes;
         if typed_keystrokes == 0 {
             return Err(Rejection::Empty);
@@ -363,7 +498,7 @@ impl<'t> Replay<'t> {
             return Err(Rejection::InhumanRhythm);
         }
 
-        Ok(TestStats {
+        let stats = TestStats {
             wpm: round2(words_per_minute(self.correct_chars() as f64)),
             raw_wpm: round2(raw_wpm),
             accuracy: round2(
@@ -373,6 +508,10 @@ impl<'t> Replay<'t> {
             correct_keystrokes: self.correct_keystrokes,
             incorrect_keystrokes: self.incorrect_keystrokes,
             elapsed_ms: self.elapsed_ms,
+        };
+        Ok(Scored {
+            stats,
+            breakdown: self.breakdown(),
         })
     }
 }
@@ -418,8 +557,12 @@ mod tests {
             .collect()
     }
 
-    fn evaluate_late(mode: TestMode, keys: &str, times: &[u32]) -> Result<TestStats, Rejection> {
+    fn score_late(mode: TestMode, keys: &str, times: &[u32]) -> Result<Scored, Rejection> {
         evaluate(&ticket(mode), keys, times, ISSUED_AT_MS + 10 * 60 * 1_000)
+    }
+
+    fn evaluate_late(mode: TestMode, keys: &str, times: &[u32]) -> Result<TestStats, Rejection> {
+        score_late(mode, keys, times).map(|scored| scored.stats)
     }
 
     #[test]
@@ -648,7 +791,7 @@ mod tests {
         let times = human_times(keys.len());
         let mode = TestMode::Time15;
         assert_eq!(
-            evaluate(&ticket(mode), &keys, &times, ISSUED_AT_MS + 5_000),
+            evaluate(&ticket(mode), &keys, &times, ISSUED_AT_MS + 5_000).map(|scored| scored.stats),
             Err(Rejection::SubmittedTooEarly)
         );
     }
@@ -657,9 +800,181 @@ mod tests {
     fn rejects_expired_token() {
         let mode = TestMode::Time15;
         assert_eq!(
-            evaluate(&ticket(mode), "a", &[0], ISSUED_AT_MS + TOKEN_TTL_MS + 1),
+            evaluate(&ticket(mode), "a", &[0], ISSUED_AT_MS + TOKEN_TTL_MS + 1)
+                .map(|scored| scored.stats),
             Err(Rejection::Expired)
         );
+    }
+
+    /// A wrong letter for `expected`, so a test never types the right key by accident.
+    fn wrong_letter(expected: u8) -> char {
+        if expected == b'z' { 'y' } else { 'z' }
+    }
+
+    fn breakdown_of(mode: TestMode, keys: &str) -> Breakdown {
+        let times = human_times(keys.chars().count());
+        score_late(mode, keys, &times)
+            .expect("valid submission")
+            .breakdown
+    }
+
+    fn key_stat(breakdown: &Breakdown, key: char) -> Option<KeyStat> {
+        breakdown.keys.iter().copied().find(|stat| stat.key == key)
+    }
+
+    #[test]
+    fn perfect_test_has_no_misses() {
+        let words = targets(TestMode::Words10);
+        let keys = perfect_keys(&words);
+
+        let breakdown = breakdown_of(TestMode::Words10, &keys);
+
+        assert!(breakdown.missed_words.is_empty());
+        assert!(breakdown.keys.iter().all(|stat| stat.misses == 0));
+        let hits: u32 = breakdown.keys.iter().map(|stat| stat.hits).sum();
+        assert_eq!(hits as usize, keys.len());
+        assert_eq!(
+            key_stat(&breakdown, ' '),
+            Some(KeyStat {
+                key: ' ',
+                hits: 9,
+                misses: 0
+            })
+        );
+    }
+
+    #[test]
+    fn corrected_typo_counts_as_missed_key_but_not_missed_word() {
+        let words = targets(TestMode::Words10);
+        let first = words[0].as_bytes()[0];
+        let keys = format!("{}\u{8}{}", wrong_letter(first), perfect_keys(&words));
+
+        let breakdown = breakdown_of(TestMode::Words10, &keys);
+
+        assert!(breakdown.missed_words.is_empty());
+        assert_eq!(breakdown.keys[0].key, char::from(first));
+        assert_eq!(breakdown.keys[0].misses, 1);
+    }
+
+    #[test]
+    fn word_left_wrong_is_reported() {
+        let words = targets(TestMode::Words10);
+        let first = words[0];
+        let last = first.as_bytes()[first.len() - 1];
+        let typo = format!("{}{}", &first[..first.len() - 1], wrong_letter(last));
+        let keys = format!("{typo} {}", perfect_keys(&words[1..]));
+
+        let breakdown = breakdown_of(TestMode::Words10, &keys);
+
+        assert_eq!(
+            breakdown.missed_words,
+            [MissedWord {
+                expected: first.to_owned(),
+                typed: typo
+            }]
+        );
+        assert_eq!(
+            key_stat(&breakdown, char::from(last)).map(|stat| stat.misses),
+            Some(1)
+        );
+        assert_eq!(
+            key_stat(&breakdown, ' '),
+            Some(KeyStat {
+                key: ' ',
+                hits: 8,
+                misses: 1
+            })
+        );
+    }
+
+    #[test]
+    fn premature_space_misses_the_skipped_letter() {
+        let words = targets(TestMode::Words10);
+        let first = words[0];
+        let skipped = first.as_bytes()[first.len() - 1];
+        let short = &first[..first.len() - 1];
+        let keys = format!("{short} {}", perfect_keys(&words[1..]));
+
+        let breakdown = breakdown_of(TestMode::Words10, &keys);
+
+        assert_eq!(
+            breakdown.missed_words,
+            [MissedWord {
+                expected: first.to_owned(),
+                typed: short.to_owned()
+            }]
+        );
+        assert_eq!(
+            key_stat(&breakdown, char::from(skipped)).map(|stat| stat.misses),
+            Some(1)
+        );
+        assert_eq!(key_stat(&breakdown, ' ').map(|stat| stat.misses), Some(0));
+    }
+
+    #[test]
+    fn extra_letters_are_errors_without_an_expected_key() {
+        let words = targets(TestMode::Words10);
+        let keys = format!("{}q {}", words[0], perfect_keys(&words[1..]));
+        let times = human_times(keys.len());
+
+        let scored = score_late(TestMode::Words10, &keys, &times).expect("valid submission");
+
+        let misses: u32 = scored.breakdown.keys.iter().map(|stat| stat.misses).sum();
+        assert_eq!(scored.stats.incorrect_keystrokes, 2);
+        // The extra `q` has no expected key; only the space that commits the word is tallied.
+        assert_eq!(misses, 1);
+    }
+
+    #[test]
+    fn wrong_last_word_ends_test_without_credit() {
+        let words = targets(TestMode::Words10);
+        let last = words[9];
+        let keys = format!("{} {} ", perfect_keys(&words[..9]), &last[..1]);
+        let times = human_times(keys.len());
+
+        let scored = score_late(TestMode::Words10, &keys, &times).expect("valid submission");
+
+        let elapsed_minutes = f64::from(*times.last().expect("non-empty")) / 60_000.0;
+        let credited = perfect_keys(&words[..9]).len() + 1;
+        assert_eq!(
+            scored.stats.wpm,
+            round2(credited as f64 / 5.0 / elapsed_minutes)
+        );
+        assert_eq!(
+            scored.breakdown.missed_words,
+            [MissedWord {
+                expected: last.to_owned(),
+                typed: last[..1].to_owned()
+            }]
+        );
+    }
+
+    #[test]
+    fn unfinished_word_of_time_test_is_not_a_missed_word() {
+        let words = targets(TestMode::Time15);
+        let keys = format!("{} {}", words[0], &words[1][..1]);
+
+        let breakdown = breakdown_of(TestMode::Time15, &keys);
+
+        assert!(breakdown.missed_words.is_empty());
+    }
+
+    #[test]
+    fn keys_sort_by_miss_rate_then_misses_then_key() {
+        let stat = |key, hits, misses| KeyStat { key, hits, misses };
+        let mut keys = [
+            stat('a', 9, 1),
+            stat('b', 1, 1),
+            stat('c', 2, 2),
+            stat('d', 5, 0),
+            stat('e', 3, 1),
+            stat('f', 3, 1),
+        ];
+
+        keys.sort_unstable_by(weaker_first);
+
+        let order: String = keys.iter().map(|stat| stat.key).collect();
+        assert_eq!(order, "cbefad");
     }
 
     #[test]

@@ -24,7 +24,7 @@ use uuid::Uuid;
 
 use crate::error::AppError;
 use crate::mode::{ModeKind, ModeSpec, TestMode};
-use crate::scoring::{self, TestStats};
+use crate::scoring::{self, Breakdown, Scored, TestStats};
 use crate::store::{DisplayName, LeaderboardEntry, ResultStore, TestResult};
 use crate::token::{TestTicket, TokenSigner};
 use crate::words;
@@ -142,6 +142,7 @@ struct ResultView {
     mode: ModeSpec,
     name: Option<DisplayName>,
     stats: TestStats,
+    breakdown: Breakdown,
     created_at: DateTime<Utc>,
 }
 
@@ -152,6 +153,7 @@ impl From<TestResult> for ResultView {
             mode: result.mode.spec(),
             name: result.name,
             stats: result.stats,
+            breakdown: result.breakdown,
             created_at: result.created_at,
         }
     }
@@ -170,12 +172,14 @@ async fn submit_result<S: ResultStore>(
     let now = Utc::now();
     // Scoring a maximal submission takes microseconds, far below the cost of moving it to the
     // blocking pool, so it runs inline on the async worker.
-    let stats = scoring::evaluate(&ticket, &submission.keys, &submission.times, unix_ms(now))?;
+    let Scored { stats, breakdown } =
+        scoring::evaluate(&ticket, &submission.keys, &submission.times, unix_ms(now))?;
     let result = TestResult {
         id: ticket.id,
         mode: ticket.mode,
         name,
         stats,
+        breakdown,
         created_at: now,
     };
     state.store.save(&result).await?;
@@ -363,6 +367,8 @@ mod tests {
         assert_eq!(status, StatusCode::CREATED);
         assert_eq!(created["name"], "ada");
         assert_eq!(created["stats"]["accuracy"], 100.0);
+        assert_eq!(created["breakdown"]["missed_words"], json!([]));
+        assert_eq!(created["breakdown"]["keys"][0]["misses"], 0);
 
         let id = created["id"].as_str().expect("id is a string");
         let (status, fetched) = call(&app, "GET", &format!("/api/results/{id}"), None).await;

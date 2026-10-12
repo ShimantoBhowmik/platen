@@ -8,11 +8,12 @@ use std::future::Future;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use sqlx::PgPool;
+use sqlx::types::Json;
 use thiserror::Error;
 use uuid::Uuid;
 
 use crate::mode::TestMode;
-use crate::scoring::TestStats;
+use crate::scoring::{Breakdown, TestStats};
 
 /// Longest allowed display name, in characters.
 pub const MAX_NAME_CHARS: usize = 24;
@@ -75,6 +76,8 @@ pub struct TestResult {
     pub name: Option<DisplayName>,
     /// The verified scores.
     pub stats: TestStats,
+    /// Per-key and per-word mistakes, for the learner's feedback.
+    pub breakdown: Breakdown,
     /// When the server accepted the result.
     pub created_at: DateTime<Utc>,
 }
@@ -164,6 +167,7 @@ struct ResultRow {
     correct_keystrokes: i32,
     incorrect_keystrokes: i32,
     elapsed_ms: i32,
+    breakdown: Json<Breakdown>,
     created_at: DateTime<Utc>,
 }
 
@@ -196,6 +200,8 @@ impl TryFrom<ResultRow> for TestResult {
                 incorrect_keystrokes: decode("incorrect_keystrokes", row.incorrect_keystrokes)?,
                 elapsed_ms: decode("elapsed_ms", row.elapsed_ms)?,
             },
+            // `Json` is a newtype; `.0` unwraps the decoded value.
+            breakdown: row.breakdown.0,
             created_at: row.created_at,
         })
     }
@@ -206,8 +212,9 @@ impl TryFrom<ResultRow> for TestResult {
 const SAVE_SQL: &str = "
 WITH inserted AS (
     INSERT INTO results (id, mode, name, wpm, raw_wpm, accuracy, consistency,
-                         correct_keystrokes, incorrect_keystrokes, elapsed_ms, created_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                         correct_keystrokes, incorrect_keystrokes, elapsed_ms, breakdown,
+                         created_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     ON CONFLICT (id) DO NOTHING
     RETURNING id, mode, name, wpm, accuracy, created_at
 ), best AS (
@@ -238,6 +245,7 @@ impl ResultStore for PgStore {
             .bind(stats.correct_keystrokes as i32)
             .bind(stats.incorrect_keystrokes as i32)
             .bind(stats.elapsed_ms as i32)
+            .bind(Json(&result.breakdown))
             .bind(result.created_at)
             .fetch_one(&self.pool)
             .await?;
@@ -251,7 +259,7 @@ impl ResultStore for PgStore {
     async fn find(&self, id: Uuid) -> Result<Option<TestResult>, StoreError> {
         let row: Option<ResultRow> = sqlx::query_as(
             "SELECT id, mode, name, wpm, raw_wpm, accuracy, consistency, correct_keystrokes,
-                    incorrect_keystrokes, elapsed_ms, created_at
+                    incorrect_keystrokes, elapsed_ms, breakdown, created_at
              FROM results WHERE id = $1",
         )
         .bind(id)

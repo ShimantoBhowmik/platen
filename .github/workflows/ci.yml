@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same PR cancels the run still in progress for it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+  RUSTDOCFLAGS: -D warnings
+
+jobs:
+  check:
+    name: fmt, clippy, test, docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pinned to the crate's `rust-version`, so a new stable lint cannot break the build.
+      - uses: dtolnay/rust-toolchain@1.89
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --locked --all-targets
+
+      - name: Test
+        run: cargo test --locked
+
+      - name: Docs
+        run: cargo doc --locked --no-deps --document-private-items

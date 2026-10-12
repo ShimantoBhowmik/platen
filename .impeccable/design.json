@@ -1,0 +1,786 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-12T04:38:48.923Z",
+  "title": "Design System: type-cast",
+  "extensions": {
+    "colorMeta": {
+      "bench": {
+        "role": "neutral",
+        "displayName": "Charcoal Bench",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Plate Card",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "face": {
+        "role": "neutral",
+        "displayName": "Lit Face",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "top": {
+        "role": "neutral",
+        "displayName": "Solid Top",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "shade-0": {
+        "role": "neutral",
+        "displayName": "Deep Side Shade",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "shade-3": {
+        "role": "neutral",
+        "displayName": "Light Side Shade",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Caption Grey",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "strong": {
+        "role": "neutral",
+        "displayName": "Strong",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "line-hi": {
+        "role": "neutral",
+        "displayName": "Hairline High",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "line-mid": {
+        "role": "neutral",
+        "displayName": "Hairline Mid",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "line-lo": {
+        "role": "neutral",
+        "displayName": "Hairline Low",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "line-faint": {
+        "role": "neutral",
+        "displayName": "Hairline Faint",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "lit": {
+        "role": "neutral",
+        "displayName": "Strike Light",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#0f0f0f",
+          "#131313",
+          "#1b1b1b",
+          "#2a2a2a",
+          "#3e3e3e",
+          "#6a6a6a",
+          "#a3a3a3",
+          "#d4d4d4",
+          "#e6e6e6"
+        ]
+      },
+      "sheet": {
+        "role": "neutral",
+        "displayName": "Sheet",
+        "tonalRamp": [
+          "oklch(15% 0.008 91.5)",
+          "oklch(26% 0.008 91.5)",
+          "oklch(37% 0.008 91.5)",
+          "oklch(48% 0.008 91.5)",
+          "oklch(59% 0.008 91.5)",
+          "oklch(70% 0.008 91.5)",
+          "oklch(81% 0.008 91.5)",
+          "oklch(95% 0.008 91.5)"
+        ]
+      },
+      "sheet-shade": {
+        "role": "neutral",
+        "displayName": "Sheet Back",
+        "tonalRamp": [
+          "oklch(15% 0.010 87.5)",
+          "oklch(26% 0.010 87.5)",
+          "oklch(37% 0.010 87.5)",
+          "oklch(48% 0.010 87.5)",
+          "oklch(59% 0.010 87.5)",
+          "oklch(70% 0.010 87.5)",
+          "oklch(81% 0.010 87.5)",
+          "oklch(95% 0.010 87.5)"
+        ]
+      },
+      "sheet-edge": {
+        "role": "neutral",
+        "displayName": "Sheet Edge",
+        "tonalRamp": [
+          "oklch(15% 0.011 87.5)",
+          "oklch(26% 0.011 87.5)",
+          "oklch(37% 0.011 87.5)",
+          "oklch(48% 0.011 87.5)",
+          "oklch(59% 0.011 87.5)",
+          "oklch(70% 0.011 87.5)",
+          "oklch(81% 0.011 87.5)",
+          "oklch(95% 0.011 87.5)"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Ribbon Ink",
+        "tonalRamp": [
+          "oklch(15% 0.000 0)",
+          "oklch(26% 0.000 0)",
+          "oklch(37% 0.000 0)",
+          "oklch(48% 0.000 0)",
+          "oklch(59% 0.000 0)",
+          "oklch(70% 0.000 0)",
+          "oklch(81% 0.000 0)",
+          "oklch(95% 0.000 0)"
+        ]
+      },
+      "copy": {
+        "role": "neutral",
+        "displayName": "Faint Copy",
+        "tonalRamp": [
+          "oklch(15% 0.010 84.6)",
+          "oklch(26% 0.010 84.6)",
+          "oklch(37% 0.010 84.6)",
+          "oklch(48% 0.010 84.6)",
+          "oklch(59% 0.010 84.6)",
+          "oklch(70% 0.010 84.6)",
+          "oklch(81% 0.010 84.6)",
+          "oklch(95% 0.010 84.6)"
+        ]
+      },
+      "ribbon": {
+        "role": "neutral",
+        "displayName": "Ribbon Body",
+        "tonalRamp": [
+          "oklch(15% 0.000 0)",
+          "oklch(26% 0.000 0)",
+          "oklch(37% 0.000 0)",
+          "oklch(48% 0.000 0)",
+          "oklch(59% 0.000 0)",
+          "oklch(70% 0.000 0)",
+          "oklch(81% 0.000 0)",
+          "oklch(95% 0.000 0)"
+        ]
+      },
+      "ribbon-red": {
+        "role": "primary",
+        "displayName": "Ribbon Red",
+        "tonalRamp": [
+          "oklch(15% 0.175 27.9)",
+          "oklch(26% 0.175 27.9)",
+          "oklch(37% 0.175 27.9)",
+          "oklch(48% 0.175 27.9)",
+          "oklch(59% 0.175 27.9)",
+          "oklch(70% 0.175 27.9)",
+          "oklch(81% 0.175 27.9)",
+          "oklch(95% 0.175 27.9)"
+        ]
+      },
+      "bench-light": {
+        "role": "neutral",
+        "displayName": "Charcoal Bench (light)",
+        "tonalRamp": [
+          "#18181a",
+          "#26262a",
+          "#57575a",
+          "#8a8a8f",
+          "#b4b4b8",
+          "#d4d4d6",
+          "#dcdcd9",
+          "#f2f2ef",
+          "#fbfbfa",
+          "#ffffff"
+        ]
+      },
+      "card-light": {
+        "role": "neutral",
+        "displayName": "Plate Card (light)",
+        "tonalRamp": [
+          "#18181a",
+          "#26262a",
+          "#57575a",
+          "#8a8a8f",
+          "#b4b4b8",
+          "#d4d4d6",
+          "#dcdcd9",
+          "#f2f2ef",
+          "#fbfbfa",
+          "#ffffff"
+        ]
+      },
+      "face-light": {
+        "role": "neutral",
+        "displayName": "Lit Face (light)",
+        "tonalRamp": [
+          "#18181a",
+          "#26262a",
+          "#57575a",
+          "#8a8a8f",
+          "#b4b4b8",
+          "#d4d4d6",
+          "#dcdcd9",
+          "#f2f2ef",
+          "#fbfbfa",
+          "#ffffff"
+        ]
+      },
+      "shade-0-light": {
+        "role": "neutral",
+        "displayName": "Deep Side Shade (light)",
+        "tonalRamp": [
+          "#18181a",
+          "#26262a",
+          "#57575a",
+          "#8a8a8f",
+          "#b4b4b8",
+          "#d4d4d6",
+          "#dcdcd9",
+          "#f2f2ef",
+          "#fbfbfa",
+          "#ffffff"
+        ]
+      },
+      "text-light": {
+        "role": "neutral",
+        "displayName": "Caption Grey (light)",
+        "tonalRamp": [
+          "#18181a",
+          "#26262a",
+          "#57575a",
+          "#8a8a8f",
+          "#b4b4b8",
+          "#d4d4d6",
+          "#dcdcd9",
+          "#f2f2ef",
+          "#fbfbfa",
+          "#ffffff"
+        ]
+      },
+      "strong-light": {
+        "role": "neutral",
+        "displayName": "Strong (light)",
+        "tonalRamp": [
+          "#18181a",
+          "#26262a",
+          "#57575a",
+          "#8a8a8f",
+          "#b4b4b8",
+          "#d4d4d6",
+          "#dcdcd9",
+          "#f2f2ef",
+          "#fbfbfa",
+          "#ffffff"
+        ]
+      },
+      "line-hi-light": {
+        "role": "neutral",
+        "displayName": "Hairline High (light)",
+        "tonalRamp": [
+          "#18181a",
+          "#26262a",
+          "#57575a",
+          "#8a8a8f",
+          "#b4b4b8",
+          "#d4d4d6",
+          "#dcdcd9",
+          "#f2f2ef",
+          "#fbfbfa",
+          "#ffffff"
+        ]
+      },
+      "line-mid-light": {
+        "role": "neutral",
+        "displayName": "Hairline Mid (light)",
+        "tonalRamp": [
+          "#18181a",
+          "#26262a",
+          "#57575a",
+          "#8a8a8f",
+          "#b4b4b8",
+          "#d4d4d6",
+          "#dcdcd9",
+          "#f2f2ef",
+          "#fbfbfa",
+          "#ffffff"
+        ]
+      },
+      "line-lo-light": {
+        "role": "neutral",
+        "displayName": "Hairline Low (light)",
+        "tonalRamp": [
+          "#18181a",
+          "#26262a",
+          "#57575a",
+          "#8a8a8f",
+          "#b4b4b8",
+          "#d4d4d6",
+          "#dcdcd9",
+          "#f2f2ef",
+          "#fbfbfa",
+          "#ffffff"
+        ]
+      },
+      "line-faint-light": {
+        "role": "neutral",
+        "displayName": "Hairline Faint (light)",
+        "tonalRamp": [
+          "#18181a",
+          "#26262a",
+          "#57575a",
+          "#8a8a8f",
+          "#b4b4b8",
+          "#d4d4d6",
+          "#dcdcd9",
+          "#f2f2ef",
+          "#fbfbfa",
+          "#ffffff"
+        ]
+      },
+      "lit-light": {
+        "role": "neutral",
+        "displayName": "Strike Light (light)",
+        "tonalRamp": [
+          "#18181a",
+          "#26262a",
+          "#57575a",
+          "#8a8a8f",
+          "#b4b4b8",
+          "#d4d4d6",
+          "#dcdcd9",
+          "#f2f2ef",
+          "#fbfbfa",
+          "#ffffff"
+        ]
+      },
+      "sheet-light": {
+        "role": "neutral",
+        "displayName": "Sheet (light)",
+        "tonalRamp": [
+          "oklch(15% 0.000 0)",
+          "oklch(26% 0.000 0)",
+          "oklch(37% 0.000 0)",
+          "oklch(48% 0.000 0)",
+          "oklch(59% 0.000 0)",
+          "oklch(70% 0.000 0)",
+          "oklch(81% 0.000 0)",
+          "oklch(95% 0.000 0)"
+        ]
+      },
+      "sheet-shade-light": {
+        "role": "neutral",
+        "displayName": "Sheet Back (light)",
+        "tonalRamp": [
+          "oklch(15% 0.000 0)",
+          "oklch(26% 0.000 0)",
+          "oklch(37% 0.000 0)",
+          "oklch(48% 0.000 0)",
+          "oklch(59% 0.000 0)",
+          "oklch(70% 0.000 0)",
+          "oklch(81% 0.000 0)",
+          "oklch(95% 0.000 0)"
+        ]
+      },
+      "sheet-edge-light": {
+        "role": "neutral",
+        "displayName": "Sheet Edge (light)",
+        "tonalRamp": [
+          "oklch(15% 0.004 106.5)",
+          "oklch(26% 0.004 106.5)",
+          "oklch(37% 0.004 106.5)",
+          "oklch(48% 0.004 106.5)",
+          "oklch(59% 0.004 106.5)",
+          "oklch(70% 0.004 106.5)",
+          "oklch(81% 0.004 106.5)",
+          "oklch(95% 0.004 106.5)"
+        ]
+      },
+      "ink-light": {
+        "role": "primary",
+        "displayName": "Ribbon Ink (light)",
+        "tonalRamp": [
+          "oklch(15% 0.004 286.0)",
+          "oklch(26% 0.004 286.0)",
+          "oklch(37% 0.004 286.0)",
+          "oklch(48% 0.004 286.0)",
+          "oklch(59% 0.004 286.0)",
+          "oklch(70% 0.004 286.0)",
+          "oklch(81% 0.004 286.0)",
+          "oklch(95% 0.004 286.0)"
+        ]
+      },
+      "copy-light": {
+        "role": "neutral",
+        "displayName": "Faint Copy (light)",
+        "tonalRamp": [
+          "oklch(15% 0.008 88.7)",
+          "oklch(26% 0.008 88.7)",
+          "oklch(37% 0.008 88.7)",
+          "oklch(48% 0.008 88.7)",
+          "oklch(59% 0.008 88.7)",
+          "oklch(70% 0.008 88.7)",
+          "oklch(81% 0.008 88.7)",
+          "oklch(95% 0.008 88.7)"
+        ]
+      },
+      "ribbon-light": {
+        "role": "neutral",
+        "displayName": "Ribbon Body (light)",
+        "tonalRamp": [
+          "oklch(15% 0.006 286.0)",
+          "oklch(26% 0.006 286.0)",
+          "oklch(37% 0.006 286.0)",
+          "oklch(48% 0.006 286.0)",
+          "oklch(59% 0.006 286.0)",
+          "oklch(70% 0.006 286.0)",
+          "oklch(81% 0.006 286.0)",
+          "oklch(95% 0.006 286.0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "sheet-type": {
+        "displayName": "Sheet Type",
+        "purpose": "Letters typed right on the current line; drawing units on a 12.5-unit pitch cell."
+      },
+      "sheet-copy": {
+        "displayName": "Sheet Copy",
+        "purpose": "Practice copy still to type, and copy left under a miss."
+      },
+      "holder-copy": {
+        "displayName": "Holder Copy",
+        "purpose": "Next two lines on the copy holder behind the sheet."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Rail, group names and chips; uppercase, tabular numerals."
+      },
+      "brand": {
+        "displayName": "Brand",
+        "purpose": "The type-cast name at the left of the rail; uppercase."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Plate corner title and hint; uppercase. Fig 1 uses it in sentence case at 0.04em."
+      },
+      "readout": {
+        "displayName": "Readout",
+        "purpose": "Time or words left, wpm and accuracy at the plate's bottom right."
+      },
+      "legend": {
+        "displayName": "Legend",
+        "purpose": "Ink keys under the card; sentence case."
+      }
+    },
+    "shadows": [
+      {
+        "name": "plate-frame",
+        "value": "0 0 0 1px var(--anatomy-mid)",
+        "purpose": "The card's hairline frame."
+      },
+      {
+        "name": "chip-ring",
+        "value": "0 0 0 1px var(--anatomy-faint)",
+        "purpose": "Chip at rest; mid on hover, hi when pressed."
+      },
+      {
+        "name": "lift",
+        "value": "inset 0 1px 0 0 #ffffff0a,inset 0 0 0 1px #ffffff06,0 0 0 1px #00000026,0 1px 1px -.5px #00000014,0 3px 3px -1.5px #00000014,0 6px 6px -3px #00000014,0 12px 12px -6px #00000014",
+        "purpose": "Only the focus prompt over the dimmed figure (dark theme value)."
+      },
+      {
+        "name": "figure-halo",
+        "value": "filter: blur(9px); opacity: .9 (.32 light); translateY(3px)",
+        "purpose": "Grounds the machine on the card."
+      }
+    ],
+    "motion": [
+      {
+        "name": "anatomy-ease",
+        "value": "cubic-bezier(.32,.72,0,1)",
+        "purpose": "Chip state changes (160ms), line feed (260ms), figure dim (240ms)."
+      },
+      {
+        "name": "carriage-return",
+        "value": "380ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Carriage glide back to the left margin."
+      },
+      {
+        "name": "escapement",
+        "value": "none",
+        "purpose": "Carriage steps one pitch cell per key with no transition."
+      },
+      {
+        "name": "key-down",
+        "value": "45ms ease-out",
+        "purpose": "Key sinks."
+      },
+      {
+        "name": "typebar-strike",
+        "value": "34ms (two frames)",
+        "purpose": "Typebar held against the platen."
+      },
+      {
+        "name": "bell-hammer",
+        "value": "70ms ease-out",
+        "purpose": "Margin bell, 6 cells before the line end."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "transition: none",
+        "purpose": "Machine holds still; chips change state instantly."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "kit-compact",
+        "value": "560px"
+      },
+      {
+        "name": "phone",
+        "value": "720px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Every control: test lengths, sound, theme, new sheet. Pressed state shows the selection.",
+      "html": "<div class=\"ds-rail\"><span class=\"ds-group\">time</span><button class=\"ds-chip\">15s</button><button class=\"ds-chip\" aria-pressed=\"true\">30s</button><button class=\"ds-chip\">60s</button></div>",
+      "css": ".ds-rail{display:flex;align-items:center;gap:4px;padding:12px;background:#0b0b0b;font:12px ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;color:#a3a3a3}.ds-group{margin-right:6px}.ds-chip{appearance:none;border:0;margin:0;padding:6px 10px;border-radius:2px;background:transparent;color:#a3a3a3;box-shadow:0 0 0 1px #2a2a2a;font:inherit;letter-spacing:inherit;text-transform:inherit;font-variant-numeric:tabular-nums;cursor:pointer;transition:color 160ms cubic-bezier(.32,.72,0,1),box-shadow 160ms cubic-bezier(.32,.72,0,1),background 160ms cubic-bezier(.32,.72,0,1)}.ds-chip:hover{color:#e6e6e6;box-shadow:0 0 0 1px #6a6a6a}.ds-chip[aria-pressed=\"true\"]{color:#e6e6e6;background:#1b1b1b;box-shadow:0 0 0 1px #d4d4d4}.ds-chip:focus-visible{outline:1px solid #d4d4d4;outline-offset:3px}.ds-chip:active{transform:translateY(1px)}"
+    },
+    {
+      "name": "Rail",
+      "kind": "nav",
+      "refersTo": "chip",
+      "description": "Brand, chip groups and tools in one wrapping row above the card.",
+      "html": "<header class=\"ds-bar\"><span class=\"ds-brand\">type-cast</span><span class=\"ds-name\">words</span><button class=\"ds-c\">10</button><button class=\"ds-c\" aria-pressed=\"true\">25</button><span class=\"ds-tools\"><button class=\"ds-c\" aria-pressed=\"true\">sound</button><button class=\"ds-c\">light</button></span></header>",
+      "css": ".ds-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 4px;padding:16px;background:#0b0b0b;color:#a3a3a3;font:12px ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase}.ds-brand{color:#e6e6e6;letter-spacing:.14em;margin-right:24px}.ds-name{margin-right:6px}.ds-tools{display:flex;gap:4px;margin-left:auto}.ds-c{appearance:none;border:0;padding:6px 10px;border-radius:2px;background:transparent;color:#a3a3a3;box-shadow:0 0 0 1px #2a2a2a;font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}.ds-c:hover{color:#e6e6e6;box-shadow:0 0 0 1px #6a6a6a}.ds-c[aria-pressed=\"true\"]{color:#e6e6e6;background:#1b1b1b;box-shadow:0 0 0 1px #d4d4d4}.ds-c:focus-visible{outline:1px solid #d4d4d4;outline-offset:3px}"
+    },
+    {
+      "name": "Plate",
+      "kind": "card",
+      "refersTo": "plate",
+      "description": "Square card with a hairline frame and four corner captions around the figure.",
+      "html": "<div class=\"ds-plate\"><span class=\"ds-k ds-fig\">Fig 1</span><span class=\"ds-k ds-title\">typewriter · 30s test</span><span class=\"ds-k ds-hint\">esc for a fresh sheet</span><span class=\"ds-k ds-read\">0:28 · 40 wpm · 88%</span></div>",
+      "css": ".ds-plate{position:relative;height:220px;background:#131313;box-shadow:0 0 0 1px #6a6a6a;border-radius:0;font-family:ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;color:#a3a3a3}.ds-k{position:absolute;font-size:12px;line-height:1;letter-spacing:.04em;white-space:nowrap}.ds-fig{top:18px;left:20px}.ds-title{top:18px;right:20px;text-transform:uppercase;letter-spacing:.1em}.ds-hint{bottom:18px;left:20px;text-transform:uppercase;letter-spacing:.1em}.ds-read{bottom:18px;right:20px;font-size:13px;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Sheet Ink",
+      "kind": "custom",
+      "refersTo": "sheet-type",
+      "description": "The paper: typed-right ink, a miss over faint copy, and copy still to type, on a fixed pitch.",
+      "html": "<div class=\"ds-sheet\"><span class=\"ds-hit\">run play </span><span class=\"ds-cell\"><span class=\"ds-copy\">w</span><span class=\"ds-miss\">x</span></span><span class=\"ds-hit\">ould s</span><span class=\"ds-copy\">ee</span></div>",
+      "css": ".ds-sheet{padding:20px 24px;background:#e8e6e0;box-shadow:0 0 0 1px #8e8b84;font:21px \"Courier Prime\",\"Courier New\",Courier,monospace;white-space:pre}.ds-hit{color:#161618;font-weight:700}.ds-copy{color:#5f5c56;font-weight:400}.ds-miss{color:#b02621;font-weight:700;position:absolute;left:0}.ds-cell{position:relative;display:inline-block}"
+    },
+    {
+      "name": "Legend",
+      "kind": "custom",
+      "refersTo": "legend-swatch",
+      "description": "Ink keys under the card.",
+      "html": "<div class=\"ds-legend\"><span class=\"ds-key\"><i class=\"ds-sw ds-hit\"></i>Typed right: black ribbon</span><span class=\"ds-key\"><i class=\"ds-sw ds-miss\"></i>Typed wrong: red ribbon over the copy</span><span class=\"ds-key\"><i class=\"ds-sw ds-copy\"></i>Still to type: faint copy</span></div>",
+      "css": ".ds-legend{display:flex;flex-wrap:wrap;gap:6px 18px;padding:12px;background:#0b0b0b;color:#a3a3a3;font:12px/1.55 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.04em}.ds-key{display:inline-flex;align-items:center;gap:7px}.ds-sw{width:18px;height:10px;border-radius:1px;box-shadow:0 0 0 1px #3e3e3e}.ds-sw.ds-hit{background:#161618;box-shadow:0 0 0 1px #8e8b84}.ds-sw.ds-miss{background:#b02621}.ds-sw.ds-copy{background:#5f5c56}"
+    },
+    {
+      "name": "Focus Prompt",
+      "kind": "custom",
+      "refersTo": "focus-prompt",
+      "description": "Shown over the dimmed figure when the card does not hold focus; the only lifted surface.",
+      "html": "<div class=\"ds-stage\"><div class=\"ds-dim\"></div><span class=\"ds-prompt\">Click the machine to type</span></div>",
+      "css": ".ds-stage{position:relative;height:140px;background:#131313}.ds-dim{position:absolute;inset:0;opacity:.55}.ds-prompt{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);padding:8px 14px;background:#131313;box-shadow:0 0 0 1px #6a6a6a,inset 0 1px 0 0 #ffffff0a,0 1px 1px -.5px #00000014,0 3px 3px -1.5px #00000014,0 6px 6px -3px #00000014,0 12px 12px -6px #00000014;color:#e6e6e6;font:12px/1 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Anatomy Plate",
+    "overview": "\n**Creative North Star: \"The Anatomy Plate\"**\n\nOne typewriter, drawn as a technical figure on a framed card, is the whole interface. The sheet rolled into its carriage is the test: the copy is printed faint on the paper, the learner types over it, and the machine answers each key with a stepped mechanical response. Everything outside the figure is set like a plate in a manual: a hairline frame, four corner captions, a legend under the card, and a single rail of controls above it that wears the same caption type.\n\nThe world is monochrome. The bench, card and machine are four-tone grey solids with 0.6px hairline outlines, screws drawn as dots, and ruler ticks cut to the type pitch. Colour exists only as ink on paper: a black ribbon for correct letters and the red half of a bichrome ribbon for misses. The only lit part of the drawing is the strike-point mark. Dark (charcoal bench) and light (paper-white bench) are the same drawing with each tone remapped; the theme follows the system preference and has a toggle.",
+    "keyCharacteristics": [
+      "One isometric anatomy figure owns the screen; the paper is the test surface.",
+      "Four-tone monochrome solids, 0.6px hairlines, dots and ticks; no hue outside the ribbon.",
+      "One lit part: the strike-point mark.",
+      "Courier Prime on the paper; small tracked system mono for every caption and control.",
+      "Square plate, near-square 2px chips, flat surfaces.",
+      "Stepped motion; reduced motion holds the machine still."
+    ],
+    "rules": [
+      {
+        "name": "The Ink Is The Only Colour Rule",
+        "body": "Hue appears only as ribbon ink on paper. The bench, card, machine, controls and captions stay on the grey ramp. The vendored kit's red, green and blue line tones are not part of this world.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Lit Part Rule",
+        "body": "The strike-point mark is the only element painted with `lit`. No other solid in the figure is drawn lit, so the eye always finds the print point.",
+        "section": "colors"
+      },
+      {
+        "name": "The Paired Theme Rule",
+        "body": "Every colour is declared twice, dark and light, on the same token name; a new tone without a light override is incomplete.",
+        "section": "colors"
+      },
+      {
+        "name": "The Pitch Cell Rule",
+        "body": "Every character on paper sits centred in a fixed pitch cell (12.5 units at 21-unit type, 26 columns, wrapped at 23). The carriage scale carries one tick per cell. Proportional text never appears on the sheet.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Faces Rule",
+        "body": "Courier Prime is for paper only; system mono is for everything outside the paper. No third family is shown; the sans stack on the page root is a fallback that no visible text uses.",
+        "section": "typography"
+      },
+      {
+        "name": "The Drawn Depth Rule",
+        "body": "Volume belongs to the figure. Interface surfaces stay flat and outlined; the lift stack is reserved for the one transient prompt over the figure.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do put every new reading surface on paper inside the drawing, set in Courier Prime on the pitch grid.",
+      "Do set controls as chips in the rail, using label type and the chip's ring states; show binary tools with `aria-pressed`.",
+      "Do declare every new colour as a dark and light pair on the same token name.",
+      "Do keep motion stepped: one cell per key, two-frame strikes, glides only for the return and the line feed, and nothing under reduced motion.",
+      "Do keep the plate's captions to the four corners: figure number, object and test, hint, readout."
+    ],
+    "donts": [
+      "Don't use hue anywhere but ribbon ink on the sheet; the kit's red, green and blue line tones stay out.",
+      "Don't paint a second part of the figure with `lit`; the strike point is the only lit part.",
+      "Don't add drop shadows to cards or chips; depth belongs to the drawing.",
+      "Don't set proportional or sans text on the paper, or Courier Prime outside it.",
+      "Don't use the kit's `muted` grey (#6e6e6e on the card) for text; this build raises captions and legend to `text` for contrast."
+    ]
+  }
+}

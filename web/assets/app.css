@@ -112,8 +112,9 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
   .tw-page { --tw-w: 100%; padding: 14px 16px 18px; }
   .tw-tools { margin-left: 0; }
   .tw-plate { padding: 40px 0 64px; }
-  /* Phones crop to the carriage at the left edge of the copy, so lines read from their start,
-     and the crop runs to the card's frame. */
+  /* Phones crop to the carriage, anchored at the left edge of the copy holder so its upcoming
+     lines read from their start; typed text on the sheet scrolls off as the carriage moves.
+     The crop runs to the card's frame. */
   .tw-stage { height: max(320px, calc(100dvh - 340px)); overflow: hidden; }
   .tw-plate .tw-svg {
     position: absolute;

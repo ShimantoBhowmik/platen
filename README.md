@@ -61,6 +61,16 @@ when `web/assets/typewriter.json` is stale.
 node web/figure/build.mjs
 ```
 
+## End-to-end checks
+
+`agent-testing/` runs the whole platform end to end: a throwaway Postgres, the server, the
+frontend bundle and a real browser at desktop, laptop and phone sizes. See
+`agent-testing/README.md`.
+
+```bash
+cd agent-testing && npm ci && node run.mjs
+```
+
 ## API
 
 All bodies are JSON. Errors have the shape

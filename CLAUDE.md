@@ -205,6 +205,16 @@ pub fn calculate_total(items: &[Item], tax_rate: f64) -> Result<f64, Calculation
 - Never add a "Generated with Claude Code" line, or any other AI-tool attribution, to a PR title or description.
 - If the PR is large or complex (roughly 300+ changed lines, 5+ files, or a change to architecture or data flow), add a visual explanation to a Mermaid diagram in the PR body. If Mermaid cannot express the idea, generate an image (e.g. with manim or matplotlib) in the style of 3b1b videos, commit it to `docs/pr-assets/` on the branch, and embed it in the description.
 - Cleanup all the github branches/worktrees that you create after you are done
+
+## End-to-end testing before CI
+
+- Before you push a branch or open or update a PR, test the whole platform end to end yourself with the agent tool in `agent-testing/`. Do this before CI runs, not instead of it.
+  - Run `cd agent-testing && node run.mjs`. Use `--skip-build` only if no Rust code changed since the last build.
+  - The run must end with `== PASSED`. Do not push on `== FAILED`.
+- After a passing run, open the screenshots in `agent-testing/results/screens/` and look at them. The checks cannot judge appearance. Fix anything that looks off.
+- If a check fails, find the cause and fix the product or the check. Never retry until it passes, and never skip or delete a check to get a pass.
+- When you add or change a feature that a learner or API client can see, add or update its checks in `agent-testing/tests/` in the same branch.
+- In the PR's **How to test** section, state the result of the run (for example, "agent-testing: 17 passed").
 ---
 
 **Remember:** Prioritize clarity and maintainability over cleverness.

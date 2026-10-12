@@ -36,3 +36,8 @@ web/figure/preview*.html
 
 # Impeccable review captures
 .impeccable/review/
+
+# Agent end-to-end tool: dependencies, builds and run output
+agent-testing/node_modules
+agent-testing/.build
+agent-testing/results

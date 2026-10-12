@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-12T04:38:48.923Z",
+  "generatedAt": "2026-10-12T05:38:53.000Z",
   "title": "Design System: type-cast",
   "extensions": {
     "colorMeta": {
@@ -310,6 +310,20 @@
           "oklch(95% 0.175 27.9)"
         ]
       },
+      "ribbon-red-plate": {
+        "role": "primary",
+        "displayName": "Ribbon Red, Plate",
+        "tonalRamp": [
+          "oklch(15% 0.181 27.0)",
+          "oklch(26% 0.181 27.0)",
+          "oklch(37% 0.181 27.0)",
+          "oklch(48% 0.181 27.0)",
+          "oklch(59% 0.181 27.0)",
+          "oklch(70% 0.181 27.0)",
+          "oklch(81% 0.181 27.0)",
+          "oklch(95% 0.181 27.0)"
+        ]
+      },
       "bench-light": {
         "role": "neutral",
         "displayName": "Charcoal Bench (light)",
@@ -569,6 +583,20 @@
           "oklch(81% 0.006 286.0)",
           "oklch(95% 0.006 286.0)"
         ]
+      },
+      "ribbon-red-plate-light": {
+        "role": "primary",
+        "displayName": "Ribbon Red, Plate (light)",
+        "tonalRamp": [
+          "oklch(15% 0.175 27.9)",
+          "oklch(26% 0.175 27.9)",
+          "oklch(37% 0.175 27.9)",
+          "oklch(48% 0.175 27.9)",
+          "oklch(59% 0.175 27.9)",
+          "oklch(70% 0.175 27.9)",
+          "oklch(81% 0.175 27.9)",
+          "oklch(95% 0.175 27.9)"
+        ]
       }
     },
     "typographyMeta": {
@@ -594,22 +622,58 @@
       },
       "caption": {
         "displayName": "Caption",
-        "purpose": "Plate corner title and hint; uppercase. Fig 1 uses it in sentence case at 0.04em."
+        "purpose": "Plate corner title and hint, focus prompt, and the labels over Fig 2's values and lists; uppercase. Fig 1 and Fig 2 use it in sentence case at 0.04em."
       },
       "readout": {
         "displayName": "Readout",
-        "purpose": "Time or words left, wpm and accuracy at the plate's bottom right."
+        "purpose": "The plate's status at bottom right: feeding paper, ready, typing, checking the sheet, verified by the server, or the failure message."
       },
       "legend": {
         "displayName": "Legend",
         "purpose": "Ink keys under the card; sentence case."
+      },
+      "note": {
+        "displayName": "Note",
+        "purpose": "Chart axis labels and units, the hover tip, sub-lines under stat values, key-disc counts, expected words, +N more."
+      },
+      "result-figure": {
+        "displayName": "Result Figure",
+        "purpose": "wpm and acc on Fig 2; scales with the card in cqw."
+      },
+      "countdown": {
+        "displayName": "Countdown",
+        "purpose": "Seconds left, or words done over the total, in the bench corner; scales with the card in cqw."
+      },
+      "countdown-phone": {
+        "displayName": "Countdown (phone)",
+        "purpose": "The countdown at 720px and below, in its own band above the crop."
+      },
+      "stat-value": {
+        "displayName": "Stat Value",
+        "purpose": "The five values in Fig 2's stats row."
+      },
+      "stat-value-phone": {
+        "displayName": "Stat Value (phone)",
+        "purpose": "Stats row values at 720px and below."
+      },
+      "missed-word": {
+        "displayName": "Missed Word",
+        "purpose": "A word as typed in words left wrong, in plate red."
+      },
+      "keycap": {
+        "displayName": "Keycap",
+        "purpose": "The letter on a weak-key disc."
+      },
+      "keycap-wide": {
+        "displayName": "Keycap (wide)",
+        "purpose": "The word space on its pill-shaped disc."
       }
     },
     "shadows": [
       {
         "name": "plate-frame",
         "value": "0 0 0 1px var(--anatomy-mid)",
-        "purpose": "The card's hairline frame."
+        "purpose": "The card's hairline frame; also the ring of the weak-key discs and the chart's hover tip."
       },
       {
         "name": "chip-ring",
@@ -659,9 +723,29 @@
         "purpose": "Margin bell, 6 cells before the line end."
       },
       {
+        "name": "result-fade",
+        "value": "240ms cubic-bezier(.32,.72,0,1)",
+        "purpose": "Fig 2 fades in when the server's result arrives."
+      },
+      {
+        "name": "chart-trace",
+        "value": "1100ms cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Raw and wpm lines draw once from the first second to the last; raw starts 120ms later."
+      },
+      {
+        "name": "chart-marks",
+        "value": "320ms ease-out, 900ms delay",
+        "purpose": "Wpm dots and error crosses fade in as the trace ends."
+      },
+      {
+        "name": "countdown-tone",
+        "value": "240ms cubic-bezier(.32,.72,0,1)",
+        "purpose": "Countdown colour from text to strong when typing starts."
+      },
+      {
         "name": "reduced-motion",
-        "value": "transition: none",
-        "purpose": "Machine holds still; chips change state instantly."
+        "value": "transition: none; animation: none",
+        "purpose": "Machine holds still; chips and countdown change instantly; Fig 2 and its chart appear finished."
       }
     ],
     "breakpoints": [
@@ -672,6 +756,10 @@
       {
         "name": "phone",
         "value": "720px"
+      },
+      {
+        "name": "rail-wrap",
+        "value": "max-width 910px or max-height 760px (column reserves 252px instead of 208px)"
       }
     ]
   },
@@ -696,8 +784,8 @@
       "name": "Plate",
       "kind": "card",
       "refersTo": "plate",
-      "description": "Square card with a hairline frame and four corner captions around the figure.",
-      "html": "<div class=\"ds-plate\"><span class=\"ds-k ds-fig\">Fig 1</span><span class=\"ds-k ds-title\">typewriter · 30s test</span><span class=\"ds-k ds-hint\">esc for a fresh sheet</span><span class=\"ds-k ds-read\">0:28 · 40 wpm · 88%</span></div>",
+      "description": "Square card with a hairline frame and four corner captions around the figure; the readout is a status.",
+      "html": "<div class=\"ds-plate\"><span class=\"ds-k ds-fig\">Fig 1</span><span class=\"ds-k ds-title\">typewriter · 30s test</span><span class=\"ds-k ds-hint\">esc for a fresh sheet</span><span class=\"ds-k ds-read\">typing</span></div>",
       "css": ".ds-plate{position:relative;height:220px;background:#131313;box-shadow:0 0 0 1px #6a6a6a;border-radius:0;font-family:ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;color:#a3a3a3}.ds-k{position:absolute;font-size:12px;line-height:1;letter-spacing:.04em;white-space:nowrap}.ds-fig{top:18px;left:20px}.ds-title{top:18px;right:20px;text-transform:uppercase;letter-spacing:.1em}.ds-hint{bottom:18px;left:20px;text-transform:uppercase;letter-spacing:.1em}.ds-read{bottom:18px;right:20px;font-size:13px;font-variant-numeric:tabular-nums}"
     },
     {
@@ -712,9 +800,9 @@
       "name": "Legend",
       "kind": "custom",
       "refersTo": "legend-swatch",
-      "description": "Ink keys under the card.",
-      "html": "<div class=\"ds-legend\"><span class=\"ds-key\"><i class=\"ds-sw ds-hit\"></i>Typed right: black ribbon</span><span class=\"ds-key\"><i class=\"ds-sw ds-miss\"></i>Typed wrong: red ribbon over the copy</span><span class=\"ds-key\"><i class=\"ds-sw ds-copy\"></i>Still to type: faint copy</span></div>",
-      "css": ".ds-legend{display:flex;flex-wrap:wrap;gap:6px 18px;padding:12px;background:#0b0b0b;color:#a3a3a3;font:12px/1.55 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.04em}.ds-key{display:inline-flex;align-items:center;gap:7px}.ds-sw{width:18px;height:10px;border-radius:1px;box-shadow:0 0 0 1px #3e3e3e}.ds-sw.ds-hit{background:#161618;box-shadow:0 0 0 1px #8e8b84}.ds-sw.ds-miss{background:#b02621}.ds-sw.ds-copy{background:#5f5c56}"
+      "description": "Keys under the card: ink keys on Fig 1, the chart's encoding on Fig 2.",
+      "html": "<div class=\"ds-legend\"><span class=\"ds-key\"><i class=\"ds-sw ds-hit\"></i>Right: black ribbon</span><span class=\"ds-key\"><i class=\"ds-sw ds-miss\"></i>Wrong: red ribbon over the copy</span><span class=\"ds-key\"><i class=\"ds-sw ds-copy\"></i>Still to type: faint copy</span></div><div class=\"ds-legend\"><span class=\"ds-key\"><i class=\"ds-sw ds-wpm\"></i>wpm so far</span><span class=\"ds-key\"><i class=\"ds-sw ds-raw\"></i>raw wpm of each second</span><span class=\"ds-key\"><i class=\"ds-sw ds-err\"></i>Wrong keys per second, right scale</span></div>",
+      "css": ".ds-legend{display:flex;flex-wrap:wrap;gap:6px 18px;padding:12px;background:#0b0b0b;color:#a3a3a3;font:12px/1.55 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.04em}.ds-key{display:inline-flex;align-items:center;gap:7px}.ds-sw{width:18px;height:10px;border-radius:1px;box-shadow:0 0 0 1px #3e3e3e}.ds-sw.ds-hit{background:#161618;box-shadow:0 0 0 1px #8e8b84}.ds-sw.ds-miss{background:#b02621}.ds-sw.ds-copy{background:#5f5c56}.ds-sw.ds-wpm,.ds-sw.ds-raw{height:2px;box-shadow:none}.ds-sw.ds-wpm{background:#e6e6e6}.ds-sw.ds-raw{background:#6a6a6a}.ds-sw.ds-err{width:10px;margin:0 4px;box-shadow:none;background:linear-gradient(45deg,transparent 42%,#e5554c 42%,#e5554c 58%,transparent 58%),linear-gradient(-45deg,transparent 42%,#e5554c 42%,#e5554c 58%,transparent 58%)}"
     },
     {
       "name": "Focus Prompt",
@@ -723,23 +811,71 @@
       "description": "Shown over the dimmed figure when the card does not hold focus; the only lifted surface.",
       "html": "<div class=\"ds-stage\"><div class=\"ds-dim\"></div><span class=\"ds-prompt\">Click the machine to type</span></div>",
       "css": ".ds-stage{position:relative;height:140px;background:#131313}.ds-dim{position:absolute;inset:0;opacity:.55}.ds-prompt{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);padding:8px 14px;background:#131313;box-shadow:0 0 0 1px #6a6a6a,inset 0 1px 0 0 #ffffff0a,0 1px 1px -.5px #00000014,0 3px 3px -1.5px #00000014,0 6px 6px -3px #00000014,0 12px 12px -6px #00000014;color:#e6e6e6;font:12px/1 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}"
+    },
+    {
+      "name": "Countdown",
+      "kind": "custom",
+      "refersTo": "countdown",
+      "description": "Seconds left, or words done over the total, large in the bench corner; strong while typing.",
+      "html": "<div class=\"ds-bench\"><span class=\"ds-count\">42<span class=\"ds-of\">/50</span></span></div>",
+      "css": ".ds-bench{padding:24px;background:#131313}.ds-count{font:700 72px/1 \"Courier Prime\",\"Courier New\",Courier,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#e6e6e6}.ds-of{font-size:.4em;letter-spacing:0;color:#a3a3a3}"
+    },
+    {
+      "name": "Result Figures",
+      "kind": "custom",
+      "refersTo": "result-figure",
+      "description": "wpm and acc on Fig 2, in the machine's face.",
+      "html": "<dl class=\"ds-fig\"><div><dt>wpm</dt><dd>65</dd></div><div><dt>acc</dt><dd>93<span class=\"ds-u\">%</span></dd></div></dl>",
+      "css": ".ds-fig{display:flex;gap:36px;margin:0;padding:24px;background:#131313}.ds-fig dt{font:400 12px/1 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:#a3a3a3;margin-bottom:8px}.ds-fig dd{margin:0;font:700 88px/.85 \"Courier Prime\",\"Courier New\",Courier,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:#e6e6e6}.ds-u{font-size:.5em;letter-spacing:0;color:#a3a3a3}"
+    },
+    {
+      "name": "Stats Row",
+      "kind": "custom",
+      "refersTo": "stat-value",
+      "description": "Five values under a faint rule; the wrong-keys count is plate red.",
+      "html": "<dl class=\"ds-stats\"><div><dt>raw</dt><dd>72</dd><dd class=\"ds-sub\">wpm of the final text</dd></div><div><dt>keys</dt><dd>694<span class=\"ds-sl\">/</span><span class=\"ds-w\">52</span></dd><dd class=\"ds-sub\">right / wrong</dd></div><div><dt>time</dt><dd>120s</dd><dd class=\"ds-sub\">time limit</dd></div></dl>",
+      "css": ".ds-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:0;padding:18px 24px 24px;background:#131313;border-top:1px solid #2a2a2a}.ds-stats dt{font:400 12px/1 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:#a3a3a3;margin-bottom:10px}.ds-stats dd{margin:0;font:700 26px/1.1 \"Courier Prime\",\"Courier New\",Courier,monospace;font-variant-numeric:tabular-nums;color:#e6e6e6}.ds-stats .ds-sub{margin-top:6px;font:400 11px/1.3 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;color:#a3a3a3}.ds-sl{margin:0 .12em;font-weight:400;color:#a3a3a3}.ds-w{color:#e5554c}"
+    },
+    {
+      "name": "Weak Key Discs",
+      "kind": "custom",
+      "refersTo": "keycap",
+      "description": "Flat key-top discs in a 1px ring, misses over total under each.",
+      "html": "<ul class=\"ds-caps\"><li><span class=\"ds-cap\">i</span><span class=\"ds-n\">4/23</span></li><li><span class=\"ds-cap\">d</span><span class=\"ds-n\">2/12</span></li><li><span class=\"ds-cap ds-wide\">space</span><span class=\"ds-n\">1/16</span></li></ul>",
+      "css": ".ds-caps{display:flex;gap:12px 14px;margin:0;padding:24px;list-style:none;background:#131313}.ds-caps li{display:grid;justify-items:center;gap:6px}.ds-cap{display:grid;place-items:center;min-width:34px;height:34px;padding:0 10px;border-radius:17px;background:#1b1b1b;box-shadow:0 0 0 1px #6a6a6a;font:700 16px/1 \"Courier Prime\",\"Courier New\",Courier,monospace;color:#e6e6e6}.ds-wide{font-size:13px}.ds-n{font:400 11px/1 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;color:#a3a3a3}"
+    },
+    {
+      "name": "Words Left Wrong",
+      "kind": "custom",
+      "refersTo": "missed-word",
+      "description": "The word as typed in plate red over the expected word.",
+      "html": "<ul class=\"ds-words\"><li><span class=\"ds-t\">fozm</span><span class=\"ds-e\">form</span></li><li><span class=\"ds-t\">throuzh</span><span class=\"ds-e\">through</span></li><li class=\"ds-more\">+4 more</li></ul>",
+      "css": ".ds-words{display:flex;flex-wrap:wrap;gap:10px 22px;margin:0;padding:24px;list-style:none;background:#131313}.ds-words li{display:grid;gap:4px}.ds-t{font:700 17px/1 \"Courier Prime\",\"Courier New\",Courier,monospace;color:#e5554c}.ds-e,.ds-more{font:400 11px/1 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;color:#a3a3a3}.ds-more{align-self:end}"
+    },
+    {
+      "name": "Speed Chart",
+      "kind": "custom",
+      "refersTo": "chart-tip",
+      "description": "Wpm so far (strong, dotted), raw wpm (mid), error crosses on a red right axis, seconds ruler, hover tip in the band above the plot.",
+      "html": "<div class=\"ds-chart\"><svg viewBox=\"0 0 360 180\" width=\"360\" height=\"180\"><line class=\"g\" x1=\"44\" x2=\"330\" y1=\"36\" y2=\"36\"/><line class=\"g\" x1=\"44\" x2=\"330\" y1=\"91\" y2=\"91\"/><text class=\"a\" x=\"34\" y=\"40\" text-anchor=\"end\">100</text><text class=\"a\" x=\"34\" y=\"95\" text-anchor=\"end\">50</text><text class=\"a\" x=\"34\" y=\"150\" text-anchor=\"end\">0</text><line class=\"r\" x1=\"44\" x2=\"330\" y1=\"146\" y2=\"146\"/><line class=\"e\" x1=\"330\" x2=\"330\" y1=\"36\" y2=\"146\"/><text class=\"a ae\" x=\"340\" y=\"24\">err</text><path class=\"raw\" d=\"M44,80 L101,60 L158,70 L216,52 L273,66 L330,58\"/><path class=\"wpm\" d=\"M44,80 L101,72 L158,70 L216,64 L273,64 L330,63\"/><path class=\"x\" d=\"M154.5,105.5 L161.5,112.5 M154.5,112.5 L161.5,105.5\"/><line class=\"gd\" x1=\"216\" x2=\"216\" y1=\"36\" y2=\"146\"/></svg><p class=\"ds-tip\">second 4: 75 wpm, raw 86</p></div>",
+      "css": ".ds-chart{position:relative;padding:12px;background:#131313}.ds-chart svg{display:block}.g{stroke:#2a2a2a}.r,.gd{stroke:#6a6a6a}.gd{stroke-dasharray:2 3}.e{stroke:#e5554c}.a{fill:#a3a3a3;font:11px ui-monospace,\"SF Mono\",Menlo,Consolas,monospace}.ae{fill:#e5554c;letter-spacing:.08em}.raw,.wpm,.x{fill:none;stroke-linejoin:round;stroke-linecap:round}.raw{stroke:#6a6a6a;stroke-width:1.25}.wpm{stroke:#e6e6e6;stroke-width:1.75}.x{stroke:#e5554c;stroke-width:1.5}.ds-tip{position:absolute;left:240px;top:12px;margin:0;padding:7px 10px;background:#131313;box-shadow:0 0 0 1px #6a6a6a;font:11px/1.3 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;color:#e6e6e6;white-space:nowrap}"
     }
   ],
   "narrative": {
     "northStar": "The Anatomy Plate",
-    "overview": "\n**Creative North Star: \"The Anatomy Plate\"**\n\nOne typewriter, drawn as a technical figure on a framed card, is the whole interface. The sheet rolled into its carriage is the test: the copy is printed faint on the paper, the learner types over it, and the machine answers each key with a stepped mechanical response. Everything outside the figure is set like a plate in a manual: a hairline frame, four corner captions, a legend under the card, and a single rail of controls above it that wears the same caption type.\n\nThe world is monochrome. The bench, card and machine are four-tone grey solids with 0.6px hairline outlines, screws drawn as dots, and ruler ticks cut to the type pitch. Colour exists only as ink on paper: a black ribbon for correct letters and the red half of a bichrome ribbon for misses. The only lit part of the drawing is the strike-point mark. Dark (charcoal bench) and light (paper-white bench) are the same drawing with each tone remapped; the theme follows the system preference and has a toggle.",
+    "overview": "\n**Creative North Star: \"The Anatomy Plate\"**\n\nOne typewriter, drawn as a technical figure on a framed card, is the whole interface. The sheet rolled into its carriage is the test: the copy is printed faint on the paper, the learner types over it, and the machine answers each key with a stepped mechanical response. Everything outside the figure is set like a plate in a manual: a hairline frame, four corner captions, a legend under the card, and a single rail of controls above it that wears the same caption type. When the server returns the score, the same card turns to Fig 2, the result plate: the machine's figures, a hairline speed chart, a stats row and what to practise next.\n\nThe world is monochrome. The bench, card and machine are four-tone grey solids with 0.6px hairline outlines, screws drawn as dots, and ruler ticks cut to the type pitch. Colour exists only as ribbon ink: a black ribbon for correct letters and the red half of a bichrome ribbon for misses, on the paper and, lifted for contrast, on the result plate. The only lit part of the drawing is the strike-point mark. Dark (charcoal bench) and light (paper-white bench) are the same drawing with each tone remapped; the theme follows the system preference and has a toggle.",
     "keyCharacteristics": [
       "One isometric anatomy figure owns the screen; the paper is the test surface.",
-      "Four-tone monochrome solids, 0.6px hairlines, dots and ticks; no hue outside the ribbon.",
+      "Four-tone monochrome solids, 0.6px hairlines, dots and ticks; no hue outside the ribbon's ink.",
       "One lit part: the strike-point mark.",
-      "Courier Prime on the paper; small tracked system mono for every caption and control.",
-      "Square plate, near-square 2px chips, flat surfaces.",
-      "Stepped motion; reduced motion holds the machine still."
+      "Courier Prime on the paper and for the machine's figures; small tracked system mono for every caption, control and axis.",
+      "Square plate, near-square 2px chips, round 17px key discs, flat surfaces.",
+      "Stepped motion; reduced motion holds the machine still and draws the chart at once."
     ],
     "rules": [
       {
         "name": "The Ink Is The Only Colour Rule",
-        "body": "Hue appears only as ribbon ink on paper. The bench, card, machine, controls and captions stay on the grey ramp. The vendored kit's red, green and blue line tones are not part of this world.",
+        "body": "Hue appears only as ribbon ink: `ribbon-red` on paper, and `ribbon-red-plate` on the card, where it marks wrong keys and nothing else. The bench, card, machine, controls, captions and every other chart line stay on the grey ramp. The vendored kit's red, green and blue line tones are not part of this world.",
         "section": "colors"
       },
       {
@@ -759,7 +895,12 @@
       },
       {
         "name": "The Two Faces Rule",
-        "body": "Courier Prime is for paper only; system mono is for everything outside the paper. No third family is shown; the sans stack on the page root is a fallback that no visible text uses.",
+        "body": "Courier Prime for paper and the machine's figures: the sheet, the copy holder, the countdown, the result figures, the stat values, the key discs and the typed missed words, always at 700 off the paper. System mono for everything else: captions, controls, the readout, axis labels, notes. No third family is shown; the sans stack on the page root is a fallback that no visible text uses.",
+        "section": "typography"
+      },
+      {
+        "name": "The Figures Scale With The Card Rule",
+        "body": "The countdown and the result figures size in container units of the card (`cqw`), not the window, so they keep their proportion to the drawing.",
         "section": "typography"
       },
       {
@@ -769,17 +910,19 @@
       }
     ],
     "dos": [
-      "Do put every new reading surface on paper inside the drawing, set in Courier Prime on the pitch grid.",
+      "Do put every reading surface of the test on paper inside the drawing, set in Courier Prime on the pitch grid; put results on Fig 2 inside the same card.",
       "Do set controls as chips in the rail, using label type and the chip's ring states; show binary tools with `aria-pressed`.",
       "Do declare every new colour as a dark and light pair on the same token name.",
-      "Do keep motion stepped: one cell per key, two-frame strikes, glides only for the return and the line feed, and nothing under reduced motion.",
-      "Do keep the plate's captions to the four corners: figure number, object and test, hint, readout."
+      "Do keep machine motion stepped: one cell per key, two-frame strikes, glides only for the return and the line feed. Result motion is one pen trace and one fade. Nothing moves under reduced motion.",
+      "Do keep the plate's captions to the four corners: figure number, object and test, hint, status readout.",
+      "Do keep chart marks off the wpm gridlines by choosing the error axis top, not by nudging marks."
     ],
     "donts": [
-      "Don't use hue anywhere but ribbon ink on the sheet; the kit's red, green and blue line tones stay out.",
+      "Don't use hue anywhere but ribbon ink: `ribbon-red` on the sheet, `ribbon-red-plate` for wrong keys on the card. The kit's red, green and blue line tones stay out.",
       "Don't paint a second part of the figure with `lit`; the strike point is the only lit part.",
-      "Don't add drop shadows to cards or chips; depth belongs to the drawing.",
-      "Don't set proportional or sans text on the paper, or Courier Prime outside it.",
+      "Don't add drop shadows to cards, chips, discs or the tip; depth belongs to the drawing.",
+      "Don't set proportional or sans text on the paper, or Courier Prime anywhere but the paper and the machine's figures; captions, controls and axis labels stay in system mono.",
+      "Don't show live wpm or accuracy during the test; the countdown is the only live figure.",
       "Don't use the kit's `muted` grey (#6e6e6e on the card) for text; this build raises captions and legend to `text` for contrast."
     ]
   }

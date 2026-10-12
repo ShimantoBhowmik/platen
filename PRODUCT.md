@@ -55,7 +55,7 @@ difference.
 - No result history. Neither the browser nor the server keeps a learner's past results.
   There are no accounts.
 - Theme: adaptive light and dark by default, with a toggle (repo CLAUDE.md rule).
-- Speed cap: results above 350 raw WPM are rejected.
+- Speed cap: results above 350 WPM of keystrokes are rejected.
 
 ## Brand Commitments
 

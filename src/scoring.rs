@@ -16,7 +16,7 @@ use std::cmp::Ordering;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::mode::{MAX_RAW_WPM, TestMode};
+use crate::mode::{MAX_KEYSTROKE_WPM, TestMode};
 use crate::token::TestTicket;
 use crate::words;
 
@@ -42,11 +42,12 @@ const MIN_HUMAN_INTERVAL_CV: f64 = 0.1;
 pub struct TestStats {
     /// Words per minute from correctly typed words.
     pub wpm: f64,
-    /// Words per minute from every character typed, right or wrong.
+    /// Words per minute from every character in the final text, right or wrong. Characters
+    /// deleted with backspace do not count.
     pub raw_wpm: f64,
     /// Percentage of character keystrokes that were correct when typed.
     pub accuracy: f64,
-    /// Rhythm steadiness from 0 to 100, from the variation between key intervals.
+    /// Speed steadiness from 0 to 100, from how much the per-second raw speed varies.
     pub consistency: f64,
     /// Character keystrokes that matched the text when typed.
     pub correct_keystrokes: u32,
@@ -147,8 +148,8 @@ pub enum Rejection {
     /// Keys follow the end of a word test.
     #[error("keystrokes continue after the test ended")]
     ExtraInput,
-    /// Raw speed above [`MAX_RAW_WPM`].
-    #[error("the typing speed is above the {MAX_RAW_WPM} WPM limit")]
+    /// Keystroke rate above [`MAX_KEYSTROKE_WPM`].
+    #[error("the keystroke rate is above the {MAX_KEYSTROKE_WPM} WPM limit")]
     TooFast,
     /// Key intervals are too uniform for a human.
     #[error("the keystroke rhythm is too regular to be human")]
@@ -206,24 +207,86 @@ pub fn evaluate(
     if u64::from(replay.elapsed_ms) > since_issue_ms + CLOCK_TOLERANCE_MS {
         return Err(Rejection::SubmittedTooEarly);
     }
-    replay.into_scored()
+    // Runs only after the timing checks, which bound `elapsed_ms` and so the bucket count.
+    let consistency = consistency(
+        keys,
+        times_ms,
+        replay.elapsed_ms,
+        ticket.mode.time_limit_ms().is_none(),
+    );
+    replay.into_scored(consistency)
 }
 
-/// Running mean and variance of key intervals (Welford's one-pass algorithm).
+/// Steadiness from the raw speed of each second of the test.
+///
+/// Character keys (not backspace) are counted per one-second bucket, and each bucket becomes a
+/// raw WPM, rounded. A word test also scores its last partial second when it is at least half a
+/// second long; a time test always ends on a whole second.
+///
+/// # Arguments
+///
+/// * `keys` - Every key pressed, in order
+/// * `times_ms` - Milliseconds since the first keystroke, one per key, non-decreasing
+/// * `elapsed_ms` - The scored duration of the test
+/// * `scores_partial_second` - Whether a final partial second gets its own bucket
+///
+/// # Returns
+///
+/// A score from 0 to 100; 0 when there is no full bucket or no typing in them.
+fn consistency(keys: &str, times_ms: &[u32], elapsed_ms: u32, scores_partial_second: bool) -> f64 {
+    let whole_seconds = elapsed_ms / 1_000;
+    let tail_ms = elapsed_ms % 1_000;
+    let has_tail = scores_partial_second && tail_ms >= 500;
+    let mut counts = vec![0_u32; whole_seconds as usize + usize::from(has_tail)];
+    for (key, &time_ms) in keys.chars().zip(times_ms) {
+        if key == BACKSPACE {
+            continue;
+        }
+        // A key at exactly 1,000 ms closes the first second. Keys in an unscored partial
+        // second fall past the end of `counts` and are dropped.
+        let bucket = (time_ms.saturating_sub(1) / 1_000) as usize;
+        if let Some(count) = counts.get_mut(bucket) {
+            *count += 1;
+        }
+    }
+
+    let mut spread = Spread::default();
+    for (index, &count) in counts.iter().enumerate() {
+        let seconds = if index < whole_seconds as usize {
+            1.0
+        } else {
+            f64::from(tail_ms) / 1_000.0
+        };
+        // Characters / 5 per minute is characters * 12 per second.
+        spread.push((f64::from(count) * 12.0 / seconds).round());
+    }
+    if spread.count == 0 || spread.mean == 0.0 {
+        return 0.0;
+    }
+    let cv = spread.population_std_dev() / spread.mean;
+    // About 100 * (1 - cv) for small variation, tapering smoothly toward 0 instead of
+    // clipping at cv = 1.
+    round2(100.0 * (1.0 - (cv + cv.powi(3) / 3.0 + cv.powi(5) / 5.0).tanh()))
+}
+
+/// Running mean and variance (Welford's one-pass algorithm).
 #[derive(Debug, Default)]
-struct IntervalStats {
+struct Spread {
     count: u32,
     mean: f64,
     sum_squared_deviation: f64,
 }
 
-impl IntervalStats {
-    fn push(&mut self, interval_ms: u32) {
+impl Spread {
+    fn push(&mut self, value: f64) {
         self.count += 1;
-        let value = f64::from(interval_ms);
         let delta = value - self.mean;
         self.mean += delta / f64::from(self.count);
         self.sum_squared_deviation += delta * (value - self.mean);
+    }
+
+    fn population_std_dev(&self) -> f64 {
+        (self.sum_squared_deviation / f64::from(self.count)).sqrt()
     }
 
     /// Standard deviation divided by mean. `None` with fewer than two samples.
@@ -234,7 +297,7 @@ impl IntervalStats {
         if self.mean == 0.0 {
             return Some(0.0);
         }
-        Some((self.sum_squared_deviation / f64::from(self.count)).sqrt() / self.mean)
+        Some(self.population_std_dev() / self.mean)
     }
 }
 
@@ -253,10 +316,14 @@ struct Replay<'t> {
     /// Per expected key, indexed by its ASCII byte. The text is ASCII, so a fixed array is an
     /// exact, allocation-free map.
     key_tallies: [KeyTally; 128],
-    intervals: IntervalStats,
+    /// Gaps between keystrokes, for the anti-cheat rhythm check.
+    intervals: Spread,
     elapsed_ms: u32,
     /// Whether a word test reached its end. Always `false` for a time test.
     finished: bool,
+    /// Whether a space ended the word test. That space is a final character but is not
+    /// stored in `typed`.
+    ended_on_space: bool,
 }
 
 impl<'t> Replay<'t> {
@@ -275,9 +342,10 @@ impl<'t> Replay<'t> {
             correct_keystrokes: 0,
             incorrect_keystrokes: 0,
             key_tallies: [KeyTally::default(); 128],
-            intervals: IntervalStats::default(),
+            intervals: Spread::default(),
             elapsed_ms: 0,
             finished: false,
+            ended_on_space: false,
         };
         let time_limit_ms = mode.time_limit_ms();
         let mut previous_ms = 0;
@@ -299,7 +367,7 @@ impl<'t> Replay<'t> {
                 continue;
             }
             if index > 0 {
-                replay.intervals.push(time_ms - previous_ms);
+                replay.intervals.push(f64::from(time_ms - previous_ms));
             }
             previous_ms = time_ms;
 
@@ -318,6 +386,7 @@ impl<'t> Replay<'t> {
                     return Err(Rejection::TooFast);
                 }
                 replay.elapsed_ms = time_ms;
+                replay.ended_on_space = key == ' ';
             }
         }
 
@@ -477,7 +546,12 @@ impl<'t> Replay<'t> {
         Breakdown { keys, missed_words }
     }
 
-    fn into_scored(self) -> Result<Scored, Rejection> {
+    /// Characters left in the final text, right or wrong, including the spaces between words.
+    fn final_chars(&self) -> usize {
+        self.typed.chars().count() + usize::from(self.ended_on_space)
+    }
+
+    fn into_scored(self, consistency: f64) -> Result<Scored, Rejection> {
         let typed_keystrokes = self.correct_keystrokes + self.incorrect_keystrokes;
         if typed_keystrokes == 0 {
             return Err(Rejection::Empty);
@@ -487,8 +561,7 @@ impl<'t> Replay<'t> {
         }
         let minutes = f64::from(self.elapsed_ms) / 60_000.0;
         let words_per_minute = |chars: f64| chars / 5.0 / minutes;
-        let raw_wpm = words_per_minute(f64::from(typed_keystrokes));
-        if raw_wpm > f64::from(MAX_RAW_WPM) {
+        if words_per_minute(f64::from(typed_keystrokes)) > f64::from(MAX_KEYSTROKE_WPM) {
             return Err(Rejection::TooFast);
         }
         let interval_cv = self.intervals.coefficient_of_variation();
@@ -500,11 +573,11 @@ impl<'t> Replay<'t> {
 
         let stats = TestStats {
             wpm: round2(words_per_minute(self.correct_chars() as f64)),
-            raw_wpm: round2(raw_wpm),
+            raw_wpm: round2(words_per_minute(self.final_chars() as f64)),
             accuracy: round2(
                 f64::from(self.correct_keystrokes) * 100.0 / f64::from(typed_keystrokes),
             ),
-            consistency: round2(interval_cv.map_or(100.0, |cv| (100.0 * (1.0 - cv)).max(0.0))),
+            consistency,
             correct_keystrokes: self.correct_keystrokes,
             incorrect_keystrokes: self.incorrect_keystrokes,
             elapsed_ms: self.elapsed_ms,
@@ -975,6 +1048,101 @@ mod tests {
 
         let order: String = keys.iter().map(|stat| stat.key).collect();
         assert_eq!(order, "cbefad");
+    }
+
+    /// Times that put `per_second[s]` keys inside second `s`, at uneven offsets so the
+    /// rhythm check sees human-like gaps.
+    fn times_per_second(per_second: &[u32]) -> Vec<u32> {
+        const OFFSETS: [u32; 10] = [37, 121, 211, 298, 433, 517, 650, 744, 902, 980];
+        per_second
+            .iter()
+            .enumerate()
+            .flat_map(|(second, &count)| {
+                OFFSETS[..count as usize]
+                    .iter()
+                    .map(move |offset| second as u32 * 1_000 + offset)
+            })
+            .collect()
+    }
+
+    #[test]
+    fn raw_wpm_ignores_deleted_characters() {
+        let words = targets(TestMode::Words10);
+        let keys = format!("q\u{8}{}", perfect_keys(&words));
+        let times = human_times(keys.chars().count());
+
+        let stats = evaluate_late(TestMode::Words10, &keys, &times).expect("valid submission");
+
+        assert_eq!(stats.raw_wpm, stats.wpm);
+        assert_eq!(
+            (stats.correct_keystrokes + stats.incorrect_keystrokes) as usize,
+            perfect_keys(&words).len() + 1
+        );
+    }
+
+    #[test]
+    fn raw_wpm_counts_space_that_ends_word_test() {
+        let words = targets(TestMode::Words10);
+        let keys = format!("{} {} ", perfect_keys(&words[..9]), &words[9][..1]);
+        let times = human_times(keys.len());
+
+        let stats = evaluate_late(TestMode::Words10, &keys, &times).expect("valid submission");
+
+        let elapsed_minutes = f64::from(*times.last().expect("non-empty")) / 60_000.0;
+        assert_eq!(
+            stats.raw_wpm,
+            round2(keys.len() as f64 / 5.0 / elapsed_minutes)
+        );
+    }
+
+    #[test]
+    fn steady_speed_every_second_is_fully_consistent() {
+        let text = perfect_keys(&targets(TestMode::Time15));
+        let times = times_per_second(&[5; 15]);
+        let keys: String = text.chars().take(times.len()).collect();
+
+        let stats = evaluate_late(TestMode::Time15, &keys, &times).expect("valid submission");
+
+        assert_eq!(stats.consistency, 100.0);
+    }
+
+    #[test]
+    fn alternating_speed_lowers_consistency() {
+        let text = perfect_keys(&targets(TestMode::Time15));
+        let per_second: Vec<u32> = (0..15)
+            .map(|second| if second % 2 == 0 { 5 } else { 10 })
+            .collect();
+        let times = times_per_second(&per_second);
+        let keys: String = text.chars().take(times.len()).collect();
+
+        let stats = evaluate_late(TestMode::Time15, &keys, &times).expect("valid submission");
+
+        assert_eq!(stats.consistency, 65.99);
+    }
+
+    #[test]
+    fn partial_last_second_counts_only_for_word_tests_from_half_a_second() {
+        let keys = "a".repeat(12);
+        let mut times = times_per_second(&[5, 5]);
+        times.extend([2_100, 2_400]);
+
+        assert_eq!(consistency(&keys, &times, 2_600, true), 82.32);
+        assert_eq!(consistency(&keys, &times, 2_600, false), 100.0);
+        assert_eq!(consistency(&keys, &times, 2_400, true), 100.0);
+    }
+
+    #[test]
+    fn backspace_does_not_count_toward_consistency() {
+        let keys = "aaaaa\u{8}\u{8}\u{8}\u{8}\u{8}aaaaa";
+        let mut times = times_per_second(&[10]);
+        times.extend(times_per_second(&[0, 5]));
+
+        assert_eq!(consistency(keys, &times, 2_000, false), 100.0);
+    }
+
+    #[test]
+    fn consistency_is_zero_without_a_full_second() {
+        assert_eq!(consistency("abc", &[0, 200, 400], 900, false), 0.0);
     }
 
     #[test]

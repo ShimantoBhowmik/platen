@@ -204,7 +204,12 @@ pub fn calculate_total(items: &[Item], tax_rate: f64) -> Result<f64, Calculation
 - Structure each PR description as: **What changed**, **Why**, **How to test**, **Risks / follow-ups**.
 - Never add a "Generated with Claude Code" line, or any other AI-tool attribution, to a PR title or description.
 - If the PR is large or complex (roughly 300+ changed lines, 5+ files, or a change to architecture or data flow), add a visual explanation to a Mermaid diagram in the PR body. If Mermaid cannot express the idea, generate an image (e.g. with manim or matplotlib) in the style of 3b1b videos, commit it to `docs/pr-assets/` on the branch, and embed it in the description.
-- Cleanup all the github branches/worktrees that you create after you are done
+- Clean up every branch and worktree you create when you are done with it.
+  - A worktree is done when its PR is merged or closed, or when you stop iterating on it. Do not leave stale worktrees behind.
+  - Remove the worktree with `git worktree remove <path>`, then run `git worktree prune`.
+  - Delete the local branch with `git branch -d <branch>` and the remote branch with `git push origin --delete <branch>`.
+  - Never remove a worktree that has uncommitted or unpushed work. Commit and push it first, or ask the user.
+  - Run `git worktree list` at the end to confirm that only active worktrees remain.
 
 ## End-to-end testing before CI
 

@@ -33,7 +33,6 @@ If the code is not fully optimized before handing off to the user, you will be f
   - The front-end should prioritize speed and common HID guidelines.
   - The app should use adaptive light/dark themes by default, with a toggle to switch the themes.
   - The typography/theming of the application **MUST** be modern and unique, similar to that of popular single-page web/mobile. **ALWAYS** add an appropriate font for headers and body text. You may reference fonts from Google Fonts.
-  - **NEVER** use the Pico CSS defaults as-is: a separate CSS/SCSS file is encouraged. The design **MUST** logically complement the semantics of the application use case.
   - **ALWAYS** rebuild the WASM binary if any underlying Rust code that affects it is touched.
 - For data processing:
   - **ALWAYS** use `polars` instead of other data frame libraries for tabular data manipulation.

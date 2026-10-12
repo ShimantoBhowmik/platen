@@ -2,9 +2,9 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: typecast
-      POSTGRES_PASSWORD: typecast
-      POSTGRES_DB: typecast
+      POSTGRES_USER: platen
+      POSTGRES_PASSWORD: platen
+      POSTGRES_DB: platen
     ports:
       - "5432:5432"
     volumes:

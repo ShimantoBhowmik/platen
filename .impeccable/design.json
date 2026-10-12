@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-10-12T05:38:53.000Z",
-  "title": "Design System: type-cast",
+  "title": "Design System: platen",
   "extensions": {
     "colorMeta": {
       "bench": {
@@ -618,7 +618,7 @@
       },
       "brand": {
         "displayName": "Brand",
-        "purpose": "The type-cast name at the left of the rail; uppercase."
+        "purpose": "The platen name at the left of the rail; uppercase."
       },
       "caption": {
         "displayName": "Caption",
@@ -777,7 +777,7 @@
       "kind": "nav",
       "refersTo": "chip",
       "description": "Brand, chip groups and tools in one wrapping row above the card.",
-      "html": "<header class=\"ds-bar\"><span class=\"ds-brand\">type-cast</span><span class=\"ds-name\">words</span><button class=\"ds-c\">10</button><button class=\"ds-c\" aria-pressed=\"true\">25</button><span class=\"ds-tools\"><button class=\"ds-c\" aria-pressed=\"true\">sound</button><button class=\"ds-c\">light</button></span></header>",
+      "html": "<header class=\"ds-bar\"><span class=\"ds-brand\">platen</span><span class=\"ds-name\">words</span><button class=\"ds-c\">10</button><button class=\"ds-c\" aria-pressed=\"true\">25</button><span class=\"ds-tools\"><button class=\"ds-c\" aria-pressed=\"true\">sound</button><button class=\"ds-c\">light</button></span></header>",
       "css": ".ds-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 4px;padding:16px;background:#0b0b0b;color:#a3a3a3;font:12px ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase}.ds-brand{color:#e6e6e6;letter-spacing:.14em;margin-right:24px}.ds-name{margin-right:6px}.ds-tools{display:flex;gap:4px;margin-left:auto}.ds-c{appearance:none;border:0;padding:6px 10px;border-radius:2px;background:transparent;color:#a3a3a3;box-shadow:0 0 0 1px #2a2a2a;font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}.ds-c:hover{color:#e6e6e6;box-shadow:0 0 0 1px #6a6a6a}.ds-c[aria-pressed=\"true\"]{color:#e6e6e6;background:#1b1b1b;box-shadow:0 0 0 1px #d4d4d4}.ds-c:focus-visible{outline:1px solid #d4d4d4;outline-offset:3px}"
     },
     {

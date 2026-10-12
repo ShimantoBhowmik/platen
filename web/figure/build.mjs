@@ -139,7 +139,7 @@ function body() {
   // Front apron with the engraved name plate.
   const front = BODY.y + BODY.d;
   out.push(`<g transform="${planeOf(front)}">${L(flatRect(-56, 9, 56, 24, 2), { tone: "lo" })}${L(flatRect(-53, 11.5, 53, 21.5, 1.4), { tone: "faint" })}</g>`);
-  out.push(k.faceTextSvg(planeOf(front), "TYPE-CAST", { size: 6, tone: "mid", anchor: "middle" }).replace("<text ", `<text x="0" y="-14.4" `));
+  out.push(k.faceTextSvg(planeOf(front), "PLATEN", { size: 6, tone: "mid", anchor: "middle" }).replace("<text ", `<text x="0" y="-14.4" `));
   out.push(D([at([-61, front, 16.5]), at([61, front, 16.5])], { size: 0.5, tone: "mid" }));
   // Right side vents.
   const side = BODY.x + BODY.w;
@@ -512,9 +512,9 @@ if (process.argv.includes("--preview")) {
     ],
   });
   const css = `<style>${readFileSync(join(HERE, "..", "assets", "typewriter.css"), "utf8")}</style>`;
-  const body = css + k.plateHtml({ fig: "Fig 1", title: "type-cast", hint: "Type to begin", readout: "0:30 · 0 wpm", keys: [], caption: "", body: svg });
+  const body = css + k.plateHtml({ fig: "Fig 1", title: "platen", hint: "Type to begin", readout: "0:30 · 0 wpm", keys: [], caption: "", body: svg });
   const name = theme === "light" ? "preview-light.html" : "preview.html";
-  writeFileSync(join(HERE, name), k.pageHtml({ title: "type-cast preview", theme, body, script: "", width: 1100 }));
+  writeFileSync(join(HERE, name), k.pageHtml({ title: "platen preview", theme, body, script: "", width: 1100 }));
   console.log("wrote", name);
 }
 

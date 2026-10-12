@@ -17,7 +17,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
 const RESULTS = join(HERE, "results");
 const WEB_RELEASE_OUT = join(HERE, ".build", "web");
-const WEB_DEBUG_PUBLIC = join(ROOT, "web", "target", "dx", "type-cast-web", "debug", "web", "public");
+const WEB_DEBUG_PUBLIC = join(ROOT, "web", "target", "dx", "platen-web", "debug", "web", "public");
 
 const USAGE = `Usage: node run.mjs [options]
 
@@ -121,7 +121,7 @@ async function startPostgres() {
         return process.env.E2E_DATABASE_URL;
     }
     const bin = postgresBin();
-    const dir = mkdtempSync(join(tmpdir(), "type-cast-e2e-"));
+    const dir = mkdtempSync(join(tmpdir(), "platen-e2e-"));
     const data = join(dir, "data");
     const port = await freePort();
     // A fixed locale keeps initdb from failing on machines with an unusual LANG.
@@ -144,12 +144,12 @@ async function startPostgres() {
         spawnSync(join(bin, "pg_ctl"), ["-D", data, "-m", "immediate", "stop"], { env: pgEnv });
         rmSync(dir, { recursive: true, force: true });
     });
-    run(join(bin, "createdb"), ["-h", "127.0.0.1", "-p", String(port), "-U", "e2e", "typecast"], {
+    run(join(bin, "createdb"), ["-h", "127.0.0.1", "-p", String(port), "-U", "e2e", "platen"], {
         env: pgEnv,
         quiet: true,
     });
     console.log(`Throwaway Postgres on port ${port}.`);
-    return `postgres://e2e@127.0.0.1:${port}/typecast`;
+    return `postgres://e2e@127.0.0.1:${port}/platen`;
 }
 
 /** Builds the server and the frontend; returns the directory the server serves. */
@@ -167,7 +167,7 @@ function build() {
             run("dx", ["build", "--platform", "web"], { cwd: join(ROOT, "web") });
         }
     }
-    for (const required of [join(ROOT, "target", "debug", "type-cast"), join(staticDir, "index.html")]) {
+    for (const required of [join(ROOT, "target", "debug", "platen"), join(staticDir, "index.html")]) {
         if (!existsSync(required)) {
             throw new Error(`Missing build output ${required}. Run without --skip-build.`);
         }
@@ -179,7 +179,7 @@ function build() {
 async function startServer(databaseUrl, staticDir) {
     const port = await freePort();
     const log = openSync(join(RESULTS, "server.log"), "w");
-    const server = spawn(join(ROOT, "target", "debug", "type-cast"), [], {
+    const server = spawn(join(ROOT, "target", "debug", "platen"), [], {
         cwd: ROOT,
         env: {
             ...ENV,

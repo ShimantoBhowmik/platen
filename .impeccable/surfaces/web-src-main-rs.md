@@ -30,7 +30,7 @@ STORY: the learner sees practice copy printed faint on the sheet, types over it,
 machine answers each key: key sinks, typebar strikes, carriage escapes one pitch, red ink
 marks a miss, the bell rings near the margin, and the return feeds a line.
 
-FIRST VIEWPORT: a framed card fills the viewport. Top left "Fig 1", top right "type-cast".
+FIRST VIEWPORT: a framed card fills the viewport. Top left "Fig 1", top right "platen".
 The typewriter sits low and centred at a near-frontal camera so the sheet reads straight;
 the current line runs through the fixed strike point at the centre, set large. Mode
 controls, theme and sound toggles sit in a hairline rail above the card; the live readout

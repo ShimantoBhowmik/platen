@@ -56,7 +56,7 @@ async function expectFits(page, testInfo) {
 
 test("a word test typed on the keyboard ends in the verified result plate", async ({ page }, testInfo) => {
     await openApp(page);
-    await expect(page).toHaveTitle("type-cast");
+    await expect(page).toHaveTitle("platen");
     const words = await chooseMode(page, "10");
     const count = page.locator(".tw-count");
     await expect(count).toHaveText("0/10");

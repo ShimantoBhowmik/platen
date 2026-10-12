@@ -1,4 +1,4 @@
-//! type-cast web app: a typing test typed on an isometric typewriter.
+//! platen web app: a typing test typed on an isometric typewriter.
 
 mod api;
 mod chart;
@@ -28,8 +28,8 @@ const BELL_AT: usize = 6;
 const STRIKE_MS: u32 = 34;
 /// How long a key stays down.
 const KEY_MS: u32 = 90;
-const STORAGE_THEME: &str = "type-cast:theme";
-const STORAGE_SOUND: &str = "type-cast:sound";
+const STORAGE_THEME: &str = "platen:theme";
+const STORAGE_SOUND: &str = "platen:sound";
 
 fn main() {
     dioxus::launch(App);
@@ -456,7 +456,7 @@ fn App() -> Element {
     };
 
     rsx! {
-        document::Title { "type-cast" }
+        document::Title { "platen" }
         document::Link { rel: "preconnect", href: "https://fonts.googleapis.com" }
         document::Link { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "anonymous" }
         document::Stylesheet { href: "https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" }
@@ -465,7 +465,7 @@ fn App() -> Element {
         document::Stylesheet { href: asset!("/assets/app.css") }
         div { class: "iso tw-page", "data-theme": theme().name(),
             header { class: "tw-rail",
-                span { class: "tw-brand", "type-cast" }
+                span { class: "tw-brand", "platen" }
                 nav { class: "tw-modes", aria_label: "Test length",
                     for kind in [ModeKind::Time, ModeKind::Words] {
                         div { class: "tw-group", role: "group",

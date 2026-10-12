@@ -1,4 +1,4 @@
-# type-cast
+# platen
 
 A typing test typed on a typewriter. The frontend (`web/`, Dioxus compiled to WebAssembly)
 draws an isometric typewriter: the test text sits on the sheet in its carriage, each key press

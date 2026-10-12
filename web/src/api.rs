@@ -1,4 +1,4 @@
-//! Calls to the type-cast server, served from the same origin.
+//! Calls to the platen server, served from the same origin.
 
 use gloo_net::http::Request;
 use serde::{Deserialize, Serialize};

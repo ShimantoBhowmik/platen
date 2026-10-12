@@ -25,6 +25,8 @@ secrecy = "0.10"
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.11"
 # Async Postgres driver with embedded migrations; `json` maps the JSONB breakdown column.
+# Hosted Postgres (Neon) requires TLS; the webpki variant bundles its root certificates, so the
+# runtime image needs no system CA store.
 sqlx = { version = "0.8.6", default-features = false, features = [
     "chrono",
     "json",
@@ -32,6 +34,7 @@ sqlx = { version = "0.8.6", default-features = false, features = [
     "migrate",
     "postgres",
     "runtime-tokio",
+    "tls-rustls-ring-webpki",
     "uuid",
 ] }
 thiserror = "2.0"

@@ -61,6 +61,24 @@ when `web/assets/typewriter.json` is stale.
 node web/figure/build.mjs
 ```
 
+## Deploy
+
+The `Dockerfile` builds one image with the server and the frontend bundle. `render.yaml` runs
+it as a free Render web service. Postgres is hosted on Neon, also on its free plan. A push to
+`main` deploys after CI passes. Migrations run when the server starts.
+
+1. In Neon, create a project with Postgres 17 in AWS US East 1 (N. Virginia). Copy the direct
+   connection string, the one without `-pooler` in the host.
+2. In Render, select **New > Blueprint** and select this repository.
+3. When Render asks for `DATABASE_URL`, paste the Neon string. Render generates
+   `TOKEN_SECRET`.
+
+To build the image locally:
+
+```bash
+docker build -t platen .
+```
+
 ## End-to-end checks
 
 `agent-testing/` runs the whole platform end to end: a throwaway Postgres, the server, the

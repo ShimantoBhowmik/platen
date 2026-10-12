@@ -1,0 +1,20 @@
+# Render Blueprint: one free web service built from the Dockerfile. Pushes to main deploy once
+# CI passes. The database is external (Neon), so DATABASE_URL is entered on first sync.
+services:
+  - type: web
+    name: platen
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    autoDeployTrigger: checksPass
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      # Base64 of 32 random bytes: 44 characters, above the 32-byte minimum.
+      - key: TOKEN_SECRET
+        generateValue: true
+      # Tells Render which port the server listens on (its default is 10000).
+      - key: PORT
+        value: "3000"

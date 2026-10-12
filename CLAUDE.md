@@ -29,6 +29,7 @@ If the code is not fully optimized before handing off to the user, you will be f
 - When reporting errors to the console, use `tracing::error!` or `log::error!` instead of `println!`.
 - If designing applications with a web-based front end interface, e.g. compiling to WASM or using `dioxus`:
   - All deep computation **MUST** occur within Rust processes (i.e. the WASM binary or the `dioxus` app Rust process). **NEVER** use JavaScript for deep computation.
+  - The front-end **MUST** use Pico CSS and vanilla JavaScript. **NEVER** use jQuery or any component-based frameworks such as React.
   - The front-end should prioritize speed and common HID guidelines.
   - The app should use adaptive light/dark themes by default, with a toggle to switch the themes.
   - The typography/theming of the application **MUST** be modern and unique, similar to that of popular single-page web/mobile. **ALWAYS** add an appropriate font for headers and body text. You may reference fonts from Google Fonts.
@@ -38,7 +39,6 @@ If the code is not fully optimized before handing off to the user, you will be f
   - **ALWAYS** use `polars` instead of other data frame libraries for tabular data manipulation.
   - If a `polars` dataframe will be printed, **NEVER** simultaneously print the number of entries in the dataframe nor the schema as it is redundant.
   - **NEVER** ingest more than 10 rows of a data frame at a time. Only analyze subsets of data to avoid overloading your memory context.
-
 ## Code Style and Formatting
 
 - **MUST** use meaningful, descriptive variable and function names
@@ -204,7 +204,9 @@ pub fn calculate_total(items: &[Item], tax_rate: f64) -> Result<f64, Calculation
 - Never push directly to `main`. Do all work on a feature branch, and after committing, always open a PR with `gh pr create`.
 - Write the PR description at about 90% ASD-STE100 (Simplified Technical English): short sentences, active voice, one instruction or fact per sentence, one word for one meaning, no filler. Use normal technical terms where strict STE would be awkward.
 - Structure each PR description as: **What changed**, **Why**, **How to test**, **Risks / follow-ups**.
+- Never add a "Generated with Claude Code" line, or any other AI-tool attribution, to a PR title or description.
 - If the PR is large or complex (roughly 300+ changed lines, 5+ files, or a change to architecture or data flow), add a visual explanation to a Mermaid diagram in the PR body. If Mermaid cannot express the idea, generate an image (e.g. with manim or matplotlib) in the style of 3b1b videos, commit it to `docs/pr-assets/` on the branch, and embed it in the description.
+- Cleanup all the github branches/worktrees that you create after you are done
 ---
 
 **Remember:** Prioritize clarity and maintainability over cleverness.

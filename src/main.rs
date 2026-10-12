@@ -46,7 +46,7 @@ async fn main() -> anyhow::Result<()> {
         PgStore::new(pool),
         TokenSigner::new(config.token_secret.expose_secret().as_bytes()),
     );
-    let app = api::router(state, config.cors_origin);
+    let app = api::router(state, config.static_dir.as_deref());
     let listener = TcpListener::bind(config.bind_addr)
         .await
         .with_context(|| format!("binding {}", config.bind_addr))?;

@@ -36,11 +36,11 @@ sqlx = { version = "0.8.6", default-features = false, features = [
 ] }
 thiserror = "2.0"
 tokio = { version = "1.53", features = ["macros", "net", "rt-multi-thread", "signal"] }
-# Compression, CORS, timeouts and request tracing middleware.
+# Compression, static files, timeouts and request tracing middleware.
 tower-http = { version = "0.7", features = [
     "compression-br",
     "compression-gzip",
-    "cors",
+    "fs",
     "timeout",
     "trace",
 ] }

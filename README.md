@@ -156,6 +156,25 @@ Every result also has a `breakdown` that shows the learner what to practise:
   last word of a time test is not listed.
 * The breakdown is stored with the result, so share links show it too.
 
+## Timeline
+
+Every result also has a `timeline` for a speed chart, with one point per scored second:
+
+```json
+"timeline": [
+  { "wpm": 84.0, "raw_wpm": 96.0, "errors": 0 },
+  { "wpm": 78.0, "raw_wpm": 72.0, "errors": 1 }
+]
+```
+
+* `wpm` is the WPM from the start of the test to the end of that second, counted like the
+  result's WPM. The last point equals the result's WPM when the test ends on a scored second.
+* `raw_wpm` is the raw WPM of the character keys typed in that second alone, rounded. These
+  are the values that consistency measures.
+* `errors` counts the character keystrokes in that second that did not match the text.
+* The seconds follow the consistency rules: a word test also gets a point for its last
+  partial second if it lasts at least 0.5 s.
+
 ## Design notes
 
 * **Stateless tests.** The token is `uuid | issued_at | mode`, signed with HMAC-SHA256. The

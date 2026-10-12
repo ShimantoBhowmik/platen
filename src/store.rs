@@ -13,7 +13,7 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use crate::mode::TestMode;
-use crate::scoring::{Breakdown, TestStats};
+use crate::scoring::{Breakdown, TestStats, TimelinePoint};
 
 /// Longest allowed display name, in characters.
 pub const MAX_NAME_CHARS: usize = 24;
@@ -78,6 +78,8 @@ pub struct TestResult {
     pub stats: TestStats,
     /// Per-key and per-word mistakes, for the learner's feedback.
     pub breakdown: Breakdown,
+    /// Speed and errors per second, for the result's chart.
+    pub timeline: Vec<TimelinePoint>,
     /// When the server accepted the result.
     pub created_at: DateTime<Utc>,
 }
@@ -168,6 +170,7 @@ struct ResultRow {
     incorrect_keystrokes: i32,
     elapsed_ms: i32,
     breakdown: Json<Breakdown>,
+    timeline: Json<Vec<TimelinePoint>>,
     created_at: DateTime<Utc>,
 }
 
@@ -202,6 +205,7 @@ impl TryFrom<ResultRow> for TestResult {
             },
             // `Json` is a newtype; `.0` unwraps the decoded value.
             breakdown: row.breakdown.0,
+            timeline: row.timeline.0,
             created_at: row.created_at,
         })
     }
@@ -213,8 +217,8 @@ const SAVE_SQL: &str = "
 WITH inserted AS (
     INSERT INTO results (id, mode, name, wpm, raw_wpm, accuracy, consistency,
                          correct_keystrokes, incorrect_keystrokes, elapsed_ms, breakdown,
-                         created_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                         timeline, created_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     ON CONFLICT (id) DO NOTHING
     RETURNING id, mode, name, wpm, accuracy, created_at
 ), best AS (
@@ -246,6 +250,7 @@ impl ResultStore for PgStore {
             .bind(stats.incorrect_keystrokes as i32)
             .bind(stats.elapsed_ms as i32)
             .bind(Json(&result.breakdown))
+            .bind(Json(&result.timeline))
             .bind(result.created_at)
             .fetch_one(&self.pool)
             .await?;
@@ -259,7 +264,7 @@ impl ResultStore for PgStore {
     async fn find(&self, id: Uuid) -> Result<Option<TestResult>, StoreError> {
         let row: Option<ResultRow> = sqlx::query_as(
             "SELECT id, mode, name, wpm, raw_wpm, accuracy, consistency, correct_keystrokes,
-                    incorrect_keystrokes, elapsed_ms, breakdown, created_at
+                    incorrect_keystrokes, elapsed_ms, breakdown, timeline, created_at
              FROM results WHERE id = $1",
         )
         .bind(id)

@@ -44,7 +44,7 @@ difference.
 ## Capabilities and Constraints
 
 - Test modes: time 15/30/60/120 s and words 10/25/50/100. The text comes from a fixed list of
-  the 200 most common English words.
+  the 1,000 most common everyday English words (`words/`).
 - Scores: WPM, raw WPM, accuracy and consistency, computed on the server.
 - Leaderboard: optional display name, best result per name per mode. Names are not protected
   because there are no accounts.

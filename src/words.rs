@@ -75,7 +75,7 @@ mod tests {
         let mut sorted = ENGLISH.to_vec();
         sorted.sort_unstable();
         sorted.dedup();
-        assert_eq!(sorted.len(), 200);
+        assert_eq!(sorted.len(), 1_000);
         assert!(
             ENGLISH
                 .iter()
@@ -95,7 +95,10 @@ mod tests {
 
     #[test]
     fn sequence_is_pinned_across_releases() {
-        assert_eq!(generate(0, 5), ["word", "look", "to", "early", "we"]);
+        assert_eq!(
+            generate(0, 5),
+            ["response", "buy", "or", "section", "really"]
+        );
     }
 
     #[test]

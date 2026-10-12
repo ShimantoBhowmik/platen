@@ -91,9 +91,8 @@ test("a word test typed on the keyboard ends in the verified result plate", asyn
     await expect(stat(plate, "keys")).toHaveText(
         `${stats.correct_keystrokes}/${stats.incorrect_keystrokes}`,
     );
-    await expect(stat(plate, "test")).toHaveText(
-        "words 10",
-    );
+    await expect(stat(plate, "test")).toHaveText("words 10");
+    await expect(plate.locator(".tw-stats .tw-sub").first()).toHaveText("english 1k");
     await expect(page.getByRole("status")).toContainText("Test scored.");
 
     // The chart draws one point per second and a mark for each second with wrong keys.

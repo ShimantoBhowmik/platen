@@ -31,14 +31,18 @@ test("health answers", async ({ request }) => {
 });
 
 test("every mode issues a test with common lowercase words", async ({ request }) => {
+    const distinct = new Set();
     for (const [mode, amount] of MODES) {
         const issued = await startTest(request, mode, amount);
+        for (const word of issued.words) distinct.add(word);
         expect(issued.token.length).toBeGreaterThan(20);
         expect(issued.mode).toEqual({ mode, amount });
         if (mode === "words") expect(issued.words).toHaveLength(amount);
         else expect(issued.words.length).toBeGreaterThan(amount * 5);
         for (const word of issued.words) expect(word).toMatch(/^[a-z]+$/);
     }
+    // The text draws on the 1,000-word list, so these tests use far more than 200 words.
+    expect(distinct.size).toBeGreaterThan(300);
 });
 
 test("an unknown mode is refused", async ({ request }) => {

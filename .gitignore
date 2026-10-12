@@ -25,3 +25,6 @@ rustc-ice-*.txt
 #
 # claude file
 CLAUDE.md
+
+# Local secrets
+.env

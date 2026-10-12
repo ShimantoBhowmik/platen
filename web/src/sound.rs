@@ -1,7 +1,9 @@
-//! The machine's sounds, synthesised in Rust and played through Web Audio.
+//! The machine's sounds, cut from a recording of a real typewriter and played through Web Audio.
 //!
-//! Each sound is computed once into a sample buffer: a key clack (four variants so a run of
-//! keys never sounds looped), the space bar thump, the margin bell and the carriage return.
+//! The clips in `web/assets/sounds/` are raw mono PCM (signed 16-bit little-endian at 44.1 kHz):
+//! six key clacks, so a run of keys never sounds looped, the space bar, the margin bell and the
+//! carriage return. They are embedded in the
+//! binary, so every cue is ready on the first key press with no fetch or decode.
 
 use std::cell::RefCell;
 
@@ -21,105 +23,26 @@ pub enum Cue {
 }
 
 const RATE: f32 = 44_100.0;
-const CLACKS: usize = 4;
 
-/// Small deterministic noise source (xorshift32), so the synth needs no RNG crate.
-struct Noise(u32);
+/// `include_bytes!` embeds a file's bytes in the binary at compile time, like reading it once
+/// at import in Python but with no file on disk at runtime.
+const CLACKS: [&[u8]; 6] = [
+    include_bytes!("../assets/sounds/clack-0.pcm"),
+    include_bytes!("../assets/sounds/clack-1.pcm"),
+    include_bytes!("../assets/sounds/clack-2.pcm"),
+    include_bytes!("../assets/sounds/clack-3.pcm"),
+    include_bytes!("../assets/sounds/clack-4.pcm"),
+    include_bytes!("../assets/sounds/clack-5.pcm"),
+];
+const SPACE: &[u8] = include_bytes!("../assets/sounds/space.pcm");
+const BELL: &[u8] = include_bytes!("../assets/sounds/bell.pcm");
+const RETURN: &[u8] = include_bytes!("../assets/sounds/return.pcm");
 
-impl Noise {
-    fn next(&mut self) -> f32 {
-        self.0 ^= self.0 << 13;
-        self.0 ^= self.0 >> 17;
-        self.0 ^= self.0 << 5;
-        (self.0 as f32 / u32::MAX as f32) * 2.0 - 1.0
-    }
-}
-
-/// Renders `seconds` of `at(t)` and scales it so its loudest sample is `peak`.
-fn samples(seconds: f32, peak: f32, mut at: impl FnMut(f32) -> f32) -> Vec<f32> {
-    let len = (seconds * RATE) as usize;
-    // The last 8% fades to silence, so a buffer that ends mid-ring never clicks.
-    let fade_from = len - len / 12;
-    let mut data: Vec<f32> = (0..len)
-        .map(|i| {
-            let fade = if i < fade_from {
-                1.0
-            } else {
-                (len - i) as f32 / (len - fade_from) as f32
-            };
-            at(i as f32 / RATE) * fade
-        })
-        .collect();
-    let loudest = data.iter().fold(0.0_f32, |max, s| max.max(s.abs()));
-    if loudest > 0.0 {
-        let gain = peak / loudest;
-        data.iter_mut().for_each(|s| *s *= gain);
-    }
-    data
-}
-
-/// A short bright click over a low body knock, the sound of slug on rubber.
-fn clack(seed: u32, body_hz: f32) -> Vec<f32> {
-    let mut noise = Noise(seed);
-    let mut previous = 0.0;
-    samples(0.07, 0.8, |t| {
-        let white = noise.next();
-        let bright = white - previous;
-        previous = white;
-        let click = bright * (-t / 0.004).exp() * 0.55;
-        let knock = (std::f32::consts::TAU * body_hz * t).sin() * (-t / 0.014).exp() * 0.5;
-        click + knock
-    })
-}
-
-fn bell() -> Vec<f32> {
-    let partials = [
-        (2_093.0, 0.5, 0.45),
-        (4_186.0, 0.18, 0.25),
-        (5_430.0, 0.12, 0.18),
-        (2_617.0, 0.08, 0.35),
-    ];
-    samples(1.6, 0.35, |t| {
-        let attack = (t / 0.002).min(1.0);
-        partials
-            .iter()
-            .map(|&(hz, amp, decay)| {
-                (std::f32::consts::TAU * hz * t).sin() * amp * (-t / decay).exp()
-            })
-            .sum::<f32>()
-            * attack
-            * 0.45
-    })
-}
-
-/// A ratchet of pawl clicks over a sliding rumble, ending in a knock at the stop.
-fn carriage_return() -> Vec<f32> {
-    let mut noise = Noise(0x9e37_79b9);
-    samples(0.42, 0.7, |t| {
-        let n = noise.next();
-        let slide = n
-            * 0.08
-            * (t / 0.32).min(1.0)
-            * if t < 0.34 {
-                1.0
-            } else {
-                (-(t - 0.34) / 0.02).exp()
-            };
-        let phase = (t % 0.028) / 0.028;
-        let ratchet = if t < 0.3 {
-            n * (-phase / 0.06).exp() * 0.35
-        } else {
-            0.0
-        };
-        let stop = if t >= 0.34 {
-            let s = t - 0.34;
-            (std::f32::consts::TAU * 110.0 * s).sin() * (-s / 0.03).exp() * 0.7
-                + n * (-s / 0.005).exp() * 0.4
-        } else {
-            0.0
-        };
-        slide + ratchet + stop
-    })
+/// Converts signed 16-bit little-endian PCM to Web Audio's floats in -1.0..=1.0.
+fn samples(pcm: &[u8]) -> Vec<f32> {
+    pcm.chunks_exact(2)
+        .map(|pair| f32::from(i16::from_le_bytes([pair[0], pair[1]])) / 32_768.0)
+        .collect()
 }
 
 struct Bank {
@@ -134,23 +57,20 @@ struct Bank {
 impl Bank {
     fn new() -> Option<Self> {
         let context = AudioContext::new().ok()?;
-        let buffer = |data: Vec<f32>| -> Option<AudioBuffer> {
+        let buffer = |pcm: &[u8]| -> Option<AudioBuffer> {
+            let data = samples(pcm);
             let buffer = context.create_buffer(1, data.len() as u32, RATE).ok()?;
             buffer.copy_to_channel(&data, 0).ok()?;
             Some(buffer)
         };
-        let clacks = (0..CLACKS)
-            .map(|i| {
-                buffer(clack(
-                    0x2545_f491 ^ (i as u32 * 7_919),
-                    150.0 + i as f32 * 14.0,
-                ))
-            })
+        let clacks = CLACKS
+            .iter()
+            .map(|pcm| buffer(pcm))
             .collect::<Option<Vec<_>>>()?;
         Some(Self {
-            space: buffer(clack(0x1357_9bdf, 92.0))?,
-            bell: buffer(bell())?,
-            ret: buffer(carriage_return())?,
+            space: buffer(SPACE)?,
+            bell: buffer(BELL)?,
+            ret: buffer(RETURN)?,
             clacks,
             next_clack: 0,
             context,
@@ -160,7 +80,7 @@ impl Bank {
     fn play(&mut self, cue: Cue) {
         let buffer = match cue {
             Cue::Clack => {
-                self.next_clack = (self.next_clack + 1) % CLACKS;
+                self.next_clack = (self.next_clack + 1) % self.clacks.len();
                 &self.clacks[self.next_clack]
             }
             Cue::Space => &self.space,
@@ -205,11 +125,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sounds_stay_in_range_and_decay() {
-        for data in [clack(1, 150.0), bell(), carriage_return()] {
-            assert!(data.iter().all(|s| s.abs() <= 1.0));
-            let tail = &data[data.len() - 100..];
-            assert!(tail.iter().all(|s| s.abs() < 0.05));
+    fn samples_decode_little_endian_i16() {
+        let pcm = [0x00, 0x00, 0xff, 0x7f, 0x00, 0x80, 0x00, 0x40];
+
+        let decoded = samples(&pcm);
+
+        assert_eq!(decoded, [0.0, 32_767.0 / 32_768.0, -1.0, 0.5]);
+    }
+
+    #[test]
+    fn clips_start_on_the_sound_and_fade_to_silence() {
+        for pcm in CLACKS.into_iter().chain([SPACE, BELL, RETURN]) {
+            let data = samples(pcm);
+            assert_eq!(pcm.len() % 2, 0);
+            let peak = data.iter().fold(0.0_f32, |max, s| max.max(s.abs()));
+            assert!((0.3..=0.85).contains(&peak), "peak {peak}");
+            // Every cue is audible within its first 20 ms, so a key press never lags its sound.
+            let onset = &data[..(0.02 * RATE) as usize];
+            assert!(onset.iter().any(|s| s.abs() > peak * 0.2));
+            assert!(data[data.len() - 100..].iter().all(|s| s.abs() < 0.01));
         }
     }
 }

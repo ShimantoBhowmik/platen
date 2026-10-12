@@ -199,6 +199,12 @@ pub fn calculate_total(items: &[Item], tax_rate: f64) -> Result<f64, Calculation
 - [ ] No hardcoded credentials
 - DO NOT PUT Claude in commit name
 
+## Git & PR workflow
+
+- Never push directly to `main`. Do all work on a feature branch, and after committing, always open a PR with `gh pr create`.
+- Write the PR description at about 90% ASD-STE100 (Simplified Technical English): short sentences, active voice, one instruction or fact per sentence, one word for one meaning, no filler. Use normal technical terms where strict STE would be awkward.
+- Structure each PR description as: **What changed**, **Why**, **How to test**, **Risks / follow-ups**.
+- If the PR is large or complex (roughly 300+ changed lines, 5+ files, or a change to architecture or data flow), add a visual explanation to a Mermaid diagram in the PR body. If Mermaid cannot express the idea, generate an image (e.g. with manim or matplotlib) in the style of 3b1b videos, commit it to `docs/pr-assets/` on the branch, and embed it in the description.
 ---
 
 **Remember:** Prioritize clarity and maintainability over cleverness.

@@ -1,0 +1,12 @@
+{
+  "name": "type-cast-agent-testing",
+  "private": true,
+  "description": "End-to-end run of the whole type-cast platform in a real browser.",
+  "type": "module",
+  "scripts": {
+    "e2e": "node run.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.54.2"
+  }
+}

@@ -86,11 +86,63 @@ pub struct Stats {
     pub accuracy: f64,
     /// Steadiness of speed, 0 to 100.
     pub consistency: f64,
+    /// Character keys that matched the text when typed.
+    pub correct_keystrokes: u32,
+    /// Character keys that did not match the text when typed.
+    pub incorrect_keystrokes: u32,
+    /// Duration the scores cover, in milliseconds.
+    pub elapsed_ms: u32,
 }
 
-#[derive(Deserialize)]
-struct ResultView {
-    stats: Stats,
+/// How the learner did on one key the text asked for.
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
+pub struct KeyStat {
+    /// The key: a lowercase letter, or a space.
+    pub key: char,
+    /// Times it was typed right.
+    pub hits: u32,
+    /// Times something else was typed where it was expected.
+    pub misses: u32,
+}
+
+/// A word left wrong.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct MissedWord {
+    /// The word in the text.
+    pub expected: String,
+    /// What was typed instead.
+    pub typed: String,
+}
+
+/// What to practise next.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct Breakdown {
+    /// Every key the text asked for, weakest first.
+    pub keys: Vec<KeyStat>,
+    /// Words committed wrong, in typing order.
+    pub missed_words: Vec<MissedWord>,
+}
+
+/// One second of the test.
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
+pub struct TimelinePoint {
+    /// WPM from the start of the test to the end of this second.
+    pub wpm: f64,
+    /// Raw WPM of this second alone.
+    pub raw_wpm: f64,
+    /// Wrong keys in this second.
+    pub errors: u32,
+}
+
+/// The server's verified result.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct Report {
+    /// The scores.
+    pub stats: Stats,
+    /// The mistake breakdown.
+    pub breakdown: Breakdown,
+    /// One point per scored second.
+    pub timeline: Vec<TimelinePoint>,
 }
 
 #[derive(Serialize)]
@@ -142,16 +194,16 @@ pub async fn new_test(spec: ModeSpec) -> Result<NewTest, ApiError> {
     Ok(response.json().await?)
 }
 
-/// Sends the keystroke log and returns the server's verified scores.
+/// Sends the keystroke log and returns the server's verified result.
 ///
 /// # Errors
 ///
 /// Returns [`ApiError`] if the server is unreachable or rejects the result.
-pub async fn submit(token: &str, keys: &str, times: &[u32]) -> Result<Stats, ApiError> {
+pub async fn submit(token: &str, keys: &str, times: &[u32]) -> Result<Report, ApiError> {
     let body = Submission { token, keys, times };
     let response = Request::post("/api/results").json(&body)?.send().await?;
     if !response.ok() {
         return Err(refused(response).await);
     }
-    Ok(response.json::<ResultView>().await?.stats)
+    Ok(response.json().await?)
 }

@@ -71,8 +71,6 @@ pub struct Session {
     finished: bool,
     keys: String,
     times_ms: Vec<u32>,
-    correct_strokes: u32,
-    total_strokes: u32,
 }
 
 impl Session {
@@ -107,8 +105,6 @@ impl Session {
             finished: false,
             keys: String::new(),
             times_ms: Vec::new(),
-            correct_strokes: 0,
-            total_strokes: 0,
         }
     }
 
@@ -155,7 +151,6 @@ impl Session {
     fn character(&mut self, character: char) -> Effect {
         let position = self.current().chars().count();
         let correct = self.target().chars().nth(position) == Some(character);
-        self.record(correct);
         let index = self.word_index();
         self.inputs[index].push(character);
         if self.finishes_on_last_word && self.is_last_word() && self.current() == self.target() {
@@ -170,7 +165,6 @@ impl Session {
             return Effect::Ignored;
         }
         let correct = self.current() == self.target();
-        self.record(correct);
         if self.is_last_word() {
             self.finished = true;
             return Effect::Finished;
@@ -189,13 +183,6 @@ impl Session {
         }
         self.inputs.pop();
         Effect::Backed
-    }
-
-    fn record(&mut self, correct: bool) {
-        self.total_strokes += 1;
-        if correct {
-            self.correct_strokes += 1;
-        }
     }
 
     /// Ends a time test when its clock runs out.
@@ -313,30 +300,6 @@ impl Session {
         }
         (cells, cursor)
     }
-
-    /// Live speed from correctly typed words, by the server's rule, at `elapsed_ms`.
-    pub fn live_wpm(&self, elapsed_ms: u32) -> f64 {
-        if elapsed_ms == 0 {
-            return 0.0;
-        }
-        let current = self.word_index();
-        let committed: usize = (0..current)
-            .filter(|&word| self.inputs[word] == self.words[word])
-            .map(|word| self.words[word].chars().count() + 1)
-            .sum();
-        let partial = if self.target().starts_with(self.current()) {
-            self.current().chars().count()
-        } else {
-            0
-        };
-        (committed + partial) as f64 / 5.0 / (f64::from(elapsed_ms) / 60_000.0)
-    }
-
-    /// Live accuracy in percent, or `None` before any character key.
-    pub fn live_accuracy(&self) -> Option<f64> {
-        (self.total_strokes > 0)
-            .then(|| f64::from(self.correct_strokes) * 100.0 / f64::from(self.total_strokes))
-    }
 }
 
 #[cfg(test)]
@@ -450,13 +413,5 @@ mod tests {
         assert_eq!(s.cursor_col(), 4);
         type_all(&mut s, " c");
         assert_eq!(s.cursor_col(), 7);
-    }
-
-    #[test]
-    fn live_stats_follow_server_rules() {
-        let mut s = session(&["ab", "cd"], false);
-        type_all(&mut s, "ax\u{8}b c");
-        assert_eq!(s.live_accuracy(), Some(80.0));
-        assert_eq!(s.live_wpm(60_000), 4.0 / 5.0);
     }
 }

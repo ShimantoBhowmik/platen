@@ -28,3 +28,11 @@ CLAUDE.md
 
 # Local secrets
 .env
+
+# Frontend build output and generated previews
+web/target
+web/dist
+web/figure/preview*.html
+
+# Impeccable review captures
+.impeccable/review/

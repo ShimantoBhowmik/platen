@@ -260,7 +260,8 @@ fn consistency(keys: &str, times_ms: &[u32], elapsed_ms: u32, scores_partial_sec
         // Characters / 5 per minute is characters * 12 per second.
         spread.push((f64::from(count) * 12.0 / seconds).round());
     }
-    if spread.count == 0 || spread.mean == 0.0 {
+    // Also covers no buckets at all, where the mean stays 0.
+    if spread.mean == 0.0 {
         return 0.0;
     }
     let cv = spread.population_std_dev() / spread.mean;

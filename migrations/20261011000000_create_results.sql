@@ -12,6 +12,8 @@ CREATE TABLE results (
     correct_keystrokes   INTEGER          NOT NULL CHECK (correct_keystrokes >= 0),
     incorrect_keystrokes INTEGER          NOT NULL CHECK (incorrect_keystrokes >= 0),
     elapsed_ms           INTEGER          NOT NULL CHECK (elapsed_ms > 0),
+    -- Per-key and per-word mistakes, in the JSON shape of `scoring::Breakdown`.
+    breakdown            JSONB            NOT NULL,
     created_at           TIMESTAMPTZ      NOT NULL
 );
 

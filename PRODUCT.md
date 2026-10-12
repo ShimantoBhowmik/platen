@@ -22,7 +22,7 @@ to practise.
 
 ## Product Purpose
 
-type-cast is a typing test that helps learners get better. A test should start right away.
+platen is a typing test that helps learners get better. A test should start right away.
 Afterward the learner should understand what went wrong and what to practise next. Success
 means a learner returns and their accuracy and speed rise over time.
 
@@ -59,7 +59,8 @@ difference.
 
 ## Brand Commitments
 
-- The name is type-cast, and it is final.
+- The name is platen, and it is final. A platen is the typewriter's roller, where every
+  letter lands. It is pronounced "PLAT-n". The brand is set in lowercase.
 - No logo, voice, or tagline exists yet.
 
 ## Evidence on Hand

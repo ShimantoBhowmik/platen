@@ -1,5 +1,5 @@
 ---
-name: type-cast
+name: platen
 description: A typing test typed on one isometric typewriter drawn as an anatomy instrument.
 colors:
   bench: "#0b0b0b"
@@ -213,7 +213,7 @@ components:
     padding: "8px 14px"
 ---
 
-# Design System: type-cast
+# Design System: platen
 
 ## Overview
 
@@ -278,7 +278,7 @@ A neutral grey bench and machine with paper and ribbon ink as the only content c
 - **Missed Word** (700, 17px, line-height 1): the word as typed in "words left wrong".
 - **Keycap** (700, 16px, line-height 1; 13px for the wide "space" cap): the weak-key letter on its disc.
 - **Label** (400, 12px, 0.08em, uppercase): the rail, its group names and its chips. Numerals are tabular.
-- **Brand** (400, 12px, 0.14em, uppercase): "type-cast" at the left of the rail. It is the only brand mark on the page apart from the nameplate drawn on the machine.
+- **Brand** (400, 12px, 0.14em, uppercase): "platen" at the left of the rail. It is the only brand mark on the page apart from the nameplate drawn on the machine.
 - **Caption** (400, 12px, line-height 1, 0.1em, uppercase): the plate's top-right title and bottom-left hint, the focus prompt, and the labels over each value and list on Fig 2. "Fig 1" and "Fig 2" at top left use the same size in sentence case at 0.04em.
 - **Readout** (400, 13px): the plate's status at bottom right, in lower case: `feeding paper`, `ready`, `typing`, `checking the sheet`, `verified by the server`, or the failure message.
 - **Legend** (400, 12px, 0.04em, sentence case): ink keys under the card.

@@ -1,16 +1,16 @@
 [package]
-name = "type-cast-web"
+name = "platen-web"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.89"
-description = "type-cast frontend: a typing test typed on an isometric typewriter."
+description = "platen frontend: a typing test typed on an isometric typewriter."
 license = "MIT"
 publish = false
 
 [dependencies]
 # UI framework, compiled to WebAssembly for the browser.
 dioxus = { version = "0.7.10", features = ["web"] }
-# HTTP calls to the type-cast server.
+# HTTP calls to the platen server.
 gloo-net = { version = "0.7", default-features = false, features = ["http", "json"] }
 # Async timers for key, strike and clock timing.
 gloo-timers = { version = "0.4", features = ["futures"] }

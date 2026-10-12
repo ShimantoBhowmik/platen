@@ -1,8 +1,8 @@
 //! The machine's sounds, cut from a recording of a real typewriter and played through Web Audio.
 //!
-//! `sounds/build_sounds.py` extracts the clips into `web/assets/sounds/` as raw mono PCM
-//! (signed 16-bit little-endian at 44.1 kHz): six key clacks, so a run of keys never sounds
-//! looped, the space bar, the margin bell and the carriage return. They are embedded in the
+//! The clips in `web/assets/sounds/` are raw mono PCM (signed 16-bit little-endian at 44.1 kHz):
+//! six key clacks, so a run of keys never sounds looped, the space bar, the margin bell and the
+//! carriage return. They are embedded in the
 //! binary, so every cue is ready on the first key press with no fetch or decode.
 
 use std::cell::RefCell;

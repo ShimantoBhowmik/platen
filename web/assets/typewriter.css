@@ -1,0 +1,33 @@
+/* Typewriter tokens on top of the anatomy kit's .iso tokens. Every colour here has a dark
+   value and a light override, as the kit's themes do. */
+.iso {
+  --tw-sheet: #e8e6e0;
+  --tw-sheet-edge: #8e8b84;
+  --tw-sheet-shade: #d9d6cf;
+  --tw-ink: #161618;
+  --tw-copy: #5f5c56;
+  --tw-red: #b02621;
+  --tw-ribbon: #050506;
+  --tw-type: "Courier Prime", "Courier New", Courier, monospace;
+}
+.iso[data-theme="light"] {
+  --tw-sheet: #ffffff;
+  --tw-sheet-edge: #a9a9a6;
+  --tw-sheet-shade: #f1f1ee;
+  --tw-ink: #121214;
+  --tw-copy: #6b6964;
+  --tw-red: #b02621;
+  --tw-ribbon: #232326;
+}
+
+.tw-sheet { fill: var(--tw-sheet); stroke: none; }
+.tw-sheet-shade { fill: var(--tw-sheet-shade); stroke: none; }
+.tw-sheet-edge { fill: none; stroke: var(--tw-sheet-edge); stroke-width: var(--anatomy-weight); }
+.tw-holder { fill: var(--anatomy-top); stroke: none; }
+.tw-ribbon { fill: var(--tw-ribbon); stroke: none; }
+.tw-ribbon-red { fill: var(--tw-red); stroke: none; }
+.tw-mark { fill: var(--anatomy-lit); stroke: none; }
+
+.tw-ink { fill: var(--tw-ink); font-family: var(--tw-type); font-weight: 700; }
+.tw-ink.tw-copy { fill: var(--tw-copy); font-weight: 400; }
+.tw-ink.tw-miss { fill: var(--tw-red); }

@@ -8,16 +8,17 @@
 //! | GET    | `/api/leaderboard`         | Best result per name for one mode          |
 //! | GET    | `/health`                  | Liveness probe                             |
 
+use std::path::Path;
 use std::time::Duration;
 
 use axum::extract::{DefaultBodyLimit, FromRequest, FromRequestParts, State};
-use axum::http::{HeaderValue, StatusCode};
+use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tower_http::compression::CompressionLayer;
-use tower_http::cors::CorsLayer;
+use tower_http::services::{ServeDir, ServeFile};
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 use uuid::Uuid;
@@ -69,32 +70,28 @@ struct ApiPath<T>(T);
 /// # Arguments
 ///
 /// * `state` - Store and signer shared by all handlers
-/// * `cors_origin` - Browser origin allowed to call the API, if the frontend is served
-///   from a different origin
-pub fn router<S: ResultStore>(state: AppState<S>, cors_origin: Option<HeaderValue>) -> Router {
+/// * `static_dir` - Built frontend to serve for every path the API does not handle; unknown
+///   paths get its `index.html`
+pub fn router<S: ResultStore>(state: AppState<S>, static_dir: Option<&Path>) -> Router {
     let api = Router::new()
         .route("/api/tests", post(create_test::<S>))
         .route("/api/results", post(submit_result::<S>))
         .route("/api/results/{id}", get(get_result::<S>))
         .route("/api/leaderboard", get(leaderboard::<S>))
         .route("/health", get(|| async { StatusCode::OK }))
-        .with_state(state)
-        .layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
+        .with_state(state);
+    let app = match static_dir {
+        Some(dir) => api
+            .fallback_service(ServeDir::new(dir).fallback(ServeFile::new(dir.join("index.html")))),
+        None => api,
+    };
+    app.layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
         .layer(CompressionLayer::new())
         .layer(TimeoutLayer::with_status_code(
             StatusCode::REQUEST_TIMEOUT,
             REQUEST_TIMEOUT,
         ))
-        .layer(TraceLayer::new_for_http());
-    match cors_origin {
-        Some(origin) => api.layer(
-            CorsLayer::new()
-                .allow_origin(origin)
-                .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
-                .allow_headers([axum::http::header::CONTENT_TYPE]),
-        ),
-        None => api,
-    }
+        .layer(TraceLayer::new_for_http())
 }
 
 /// Response to `POST /api/tests`.

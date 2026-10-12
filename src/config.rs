@@ -1,9 +1,9 @@
 //! Runtime configuration, read from environment variables (and `.env` in development).
 
 use std::net::SocketAddr;
+use std::path::PathBuf;
 
 use anyhow::{Context, bail};
-use axum::http::HeaderValue;
 use secrecy::{ExposeSecret, SecretString};
 
 /// Shortest accepted `TOKEN_SECRET`, in bytes. HMAC-SHA256 gains nothing past 64.
@@ -23,8 +23,9 @@ pub struct Config {
     pub token_secret: SecretString,
     /// `BIND_ADDR`: socket to listen on. Defaults to `0.0.0.0:3000`.
     pub bind_addr: SocketAddr,
-    /// `CORS_ORIGIN`: browser origin allowed to call the API. Unset disables CORS.
-    pub cors_origin: Option<HeaderValue>,
+    /// `STATIC_DIR`: built frontend to serve beside the API (`dx bundle` output). Unset
+    /// serves the API only.
+    pub static_dir: Option<PathBuf>,
     /// `MAX_DB_CONNECTIONS`: size of the Postgres pool. Defaults to 16.
     pub max_db_connections: u32,
 }
@@ -48,10 +49,7 @@ impl Config {
                 .unwrap_or(DEFAULT_BIND_ADDR)
                 .parse()
                 .context("BIND_ADDR must be a socket address such as 0.0.0.0:3000")?,
-            cors_origin: optional("CORS_ORIGIN")
-                .map(HeaderValue::try_from)
-                .transpose()
-                .context("CORS_ORIGIN must be a valid header value")?,
+            static_dir: optional("STATIC_DIR").map(PathBuf::from),
             max_db_connections: optional("MAX_DB_CONNECTIONS")
                 .map(|count| count.parse())
                 .transpose()

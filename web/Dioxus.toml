@@ -1,0 +1,9 @@
+[application]
+name = "type-cast"
+
+[web.app]
+title = "type-cast"
+
+# During `dx serve`, API calls go to the axum server on port 3000.
+[[web.proxy]]
+backend = "http://localhost:3000/api/"

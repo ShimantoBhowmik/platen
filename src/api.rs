@@ -372,11 +372,14 @@ mod tests {
         assert_eq!(created["stats"]["accuracy"], 100.0);
         assert_eq!(created["breakdown"]["missed_words"], json!([]));
         assert_eq!(created["breakdown"]["keys"][0]["misses"], 0);
+        // One point per scored second: a word test also scores a final partial second of at
+        // least half a second. The words are random, so the end time is not fixed.
+        let elapsed_ms = created["stats"]["elapsed_ms"]
+            .as_u64()
+            .expect("elapsed is a number");
+        let points = elapsed_ms / 1_000 + u64::from(elapsed_ms % 1_000 >= 500);
         let timeline = created["timeline"].as_array().expect("timeline is a list");
-        assert_eq!(
-            timeline.last().map(|point| &point["wpm"]),
-            Some(&created["stats"]["wpm"])
-        );
+        assert_eq!(timeline.len() as u64, points);
 
         let id = created["id"].as_str().expect("id is a string");
         let (status, fetched) = call(&app, "GET", &format!("/api/results/{id}"), None).await;

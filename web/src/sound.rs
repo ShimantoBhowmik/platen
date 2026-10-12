@@ -1,9 +1,9 @@
 //! The machine's sounds, cut from a recording of a real typewriter and played through Web Audio.
 //!
 //! The clips in `web/assets/sounds/` are raw mono PCM (signed 16-bit little-endian at 44.1 kHz):
-//! six key clacks, so a run of keys never sounds looped, the space bar, the margin bell and the
-//! carriage return. They are embedded in the
-//! binary, so every cue is ready on the first key press with no fetch or decode.
+//! six key clacks, so a run of keys never sounds looped, the space bar, the backspace, the margin
+//! bell and the carriage return. They are embedded in the binary, so every cue is ready on the
+//! first key press with no fetch or decode.
 
 use std::cell::RefCell;
 
@@ -16,6 +16,8 @@ pub enum Cue {
     Clack,
     /// The space bar.
     Space,
+    /// The carriage stepping back one notch: a soft lever tick, then the escapement pawl.
+    Backspace,
     /// The bell near the right margin.
     Bell,
     /// The carriage being thrown back.
@@ -35,6 +37,7 @@ const CLACKS: [&[u8]; 6] = [
     include_bytes!("../assets/sounds/clack-5.pcm"),
 ];
 const SPACE: &[u8] = include_bytes!("../assets/sounds/space.pcm");
+const BACKSPACE: &[u8] = include_bytes!("../assets/sounds/backspace.pcm");
 const BELL: &[u8] = include_bytes!("../assets/sounds/bell.pcm");
 const RETURN: &[u8] = include_bytes!("../assets/sounds/return.pcm");
 
@@ -49,6 +52,7 @@ struct Bank {
     context: AudioContext,
     clacks: Vec<AudioBuffer>,
     space: AudioBuffer,
+    backspace: AudioBuffer,
     bell: AudioBuffer,
     ret: AudioBuffer,
     next_clack: usize,
@@ -69,6 +73,7 @@ impl Bank {
             .collect::<Option<Vec<_>>>()?;
         Some(Self {
             space: buffer(SPACE)?,
+            backspace: buffer(BACKSPACE)?,
             bell: buffer(BELL)?,
             ret: buffer(RETURN)?,
             clacks,
@@ -84,6 +89,7 @@ impl Bank {
                 &self.clacks[self.next_clack]
             }
             Cue::Space => &self.space,
+            Cue::Backspace => &self.backspace,
             Cue::Bell => &self.bell,
             Cue::Return => &self.ret,
         };
@@ -135,7 +141,7 @@ mod tests {
 
     #[test]
     fn clips_start_on_the_sound_and_fade_to_silence() {
-        for pcm in CLACKS.into_iter().chain([SPACE, BELL, RETURN]) {
+        for pcm in CLACKS.into_iter().chain([SPACE, BACKSPACE, BELL, RETURN]) {
             let data = samples(pcm);
             assert_eq!(pcm.len() % 2, 0);
             let peak = data.iter().fold(0.0_f32, |max, s| max.max(s.abs()));

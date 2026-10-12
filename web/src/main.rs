@@ -262,7 +262,8 @@ fn App() -> Element {
             if sound_on() {
                 sound::play(match effect {
                     Effect::Spaced { .. } if line_changed => Cue::Return,
-                    Effect::Spaced { .. } | Effect::Backed => Cue::Space,
+                    Effect::Spaced { .. } => Cue::Space,
+                    Effect::Backed => Cue::Backspace,
                     _ => Cue::Clack,
                 });
             }

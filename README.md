@@ -35,7 +35,7 @@ Modes are `{ "mode": "time", "amount": 15 | 30 | 60 | 120 }` or
 ### `POST /api/tests`
 
 Starts a test. Send a mode. The response holds an opaque `token` and the `words` to type. A
-time test gets enough words for the 350 WPM speed cap.
+time test gets enough words for the 350 WPM keystroke cap.
 
 ### `POST /api/results`
 
@@ -81,10 +81,18 @@ Returns `200` while the process is up.
 
 * WPM counts the characters of correctly typed words plus their spaces, divided by 5, per
   minute. A time test also credits the correct prefix of the last word.
-* Raw WPM counts every character keystroke, right or wrong.
+* Raw WPM counts every character left in the final text, right or wrong, including the
+  spaces between words. Characters deleted with backspace do not count.
 * Accuracy is the percentage of character keystrokes that matched the text when typed.
-* Consistency is `100 * (1 - cv)` of the intervals between keys. `cv` is the coefficient of
-  variation: standard deviation divided by mean.
+  Corrected typos still count as errors.
+* Consistency measures how steady the speed was. The server counts the characters typed in
+  each second of the test (backspace excluded) and turns each count into a raw WPM. With
+  `cv` as the coefficient of variation of those values (standard deviation divided by mean),
+  consistency is `100 * (1 - tanh(cv + cv^3/3 + cv^5/5))`. For small `cv` this is about
+  `100 * (1 - cv)`, and it falls smoothly toward 0. A word test also scores its last partial
+  second if it lasts at least 0.5 s.
+* The speed cap is 350 WPM of keystrokes: every character key, including ones later
+  deleted, divided by 5 per minute. A faster submission is rejected.
 
 ## Mistake breakdown
 

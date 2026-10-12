@@ -7,9 +7,10 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-/// Highest raw speed a submission may reach. It also sizes the word list for time tests, so a
-/// typist under this speed never runs out of words.
-pub const MAX_RAW_WPM: u32 = 350;
+/// Highest keystroke rate a submission may reach, in words per minute of 5 keystrokes. It
+/// counts every character key, even ones later deleted, because that is what a script inflates.
+/// It also sizes the word list for time tests, so a typist under this rate never runs out.
+pub const MAX_KEYSTROKE_WPM: u32 = 350;
 
 /// Fewest keystrokes that can finish a word: one letter and a space.
 const MIN_KEYSTROKES_PER_WORD: u32 = 2;
@@ -127,13 +128,13 @@ impl TestMode {
 
     /// How many words the test text contains.
     ///
-    /// For time tests this is enough words that even one-letter words typed at [`MAX_RAW_WPM`]
+    /// For time tests this is enough words that even one-letter words typed at [`MAX_KEYSTROKE_WPM`]
     /// cannot run out. A raw WPM "word" is 5 keystrokes, while a typed word can cost as few as
     /// [`MIN_KEYSTROKES_PER_WORD`].
     pub const fn word_count(self) -> usize {
         let spec = self.spec();
         match spec.mode {
-            ModeKind::Time => (spec.amount as u32 * MAX_RAW_WPM * 5)
+            ModeKind::Time => (spec.amount as u32 * MAX_KEYSTROKE_WPM * 5)
                 .div_ceil(60 * MIN_KEYSTROKES_PER_WORD) as usize,
             ModeKind::Words => spec.amount as usize,
         }

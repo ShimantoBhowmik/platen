@@ -173,6 +173,36 @@ test("theme and sound choices survive a reload", async ({ page }) => {
     await expect(sound).toHaveAttribute("aria-pressed", "false");
 });
 
+test("typing plays the recorded typewriter clips", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop", "sound does not depend on size");
+    // Records every buffer the app starts: its length and one sample, which tells clips apart.
+    await page.addInitScript(() => {
+        window.played = [];
+        const start = AudioBufferSourceNode.prototype.start;
+        AudioBufferSourceNode.prototype.start = function (...args) {
+            window.played.push({
+                seconds: this.buffer.duration,
+                sample: this.buffer.getChannelData(0)[200],
+            });
+            return start.apply(this, args);
+        };
+    });
+    await openApp(page);
+    const words = await chooseMode(page, "10");
+
+    const keys = `${words[0]} `;
+    await typeLikeHuman(page, keys);
+
+    await expect.poll(() => page.evaluate(() => window.played.length)).toBe(keys.length);
+    const played = await page.evaluate(() => window.played);
+    // Clacks and the space bar are 160 ms cuts of the recording.
+    for (const clip of played) expect(clip.seconds).toBeCloseTo(0.16, 3);
+    const clacks = new Set(played.slice(0, -1).map((clip) => clip.sample));
+    expect(clacks.size, "consecutive keys use different clack variants").toBe(
+        Math.min(words[0].length, 6),
+    );
+});
+
 test.describe("error states", () => {
     test.use({ allowedConsoleErrors: [/Failed to load resource/] });
 

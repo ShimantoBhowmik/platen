@@ -7,6 +7,9 @@
   --tw-ink: #161618;
   --tw-copy: #5f5c56;
   --tw-red: #b02621;
+  /* Red ribbon ink off the paper, on the plate: lifted in dark so marks and text keep AA
+     contrast on the charcoal card. */
+  --tw-red-plate: #e5554c;
   --tw-ribbon: #050506;
   --tw-type: "Courier Prime", "Courier New", Courier, monospace;
 }
@@ -17,6 +20,7 @@
   --tw-ink: #121214;
   --tw-copy: #6b6964;
   --tw-red: #b02621;
+  --tw-red-plate: #b02621;
   --tw-ribbon: #232326;
 }
 

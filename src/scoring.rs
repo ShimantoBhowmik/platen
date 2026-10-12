@@ -7,7 +7,8 @@
 //! divided by five per minute.
 //!
 //! The same replay also produces a [`Breakdown`] of the learner's mistakes: how often each key
-//! of the text was hit or missed, and which words were committed wrong.
+//! of the text was hit or missed, and which words were committed wrong. It also produces a
+//! per-second [`TimelinePoint`] series for the result's speed chart.
 //!
 //! Everything here is pure: it takes the clock as an argument, so it is fully unit-testable.
 
@@ -91,6 +92,19 @@ pub struct Breakdown {
     pub missed_words: Vec<MissedWord>,
 }
 
+/// The typing in one second of the test, for the result's speed chart.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct TimelinePoint {
+    /// WPM from the start of the test to the end of this second, counted like
+    /// [`TestStats::wpm`]. The last point equals the test's WPM.
+    pub wpm: f64,
+    /// Raw WPM of the character keys typed in this second alone, rounded to a whole number.
+    /// These values are what [`TestStats::consistency`] measures.
+    pub raw_wpm: f64,
+    /// Character keystrokes in this second that did not match the text.
+    pub errors: u32,
+}
+
 /// The full outcome of scoring a submission.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Scored {
@@ -98,6 +112,30 @@ pub struct Scored {
     pub stats: TestStats,
     /// The mistake breakdown for the learner.
     pub breakdown: Breakdown,
+    /// One point per scored second of the test, in order.
+    pub timeline: Vec<TimelinePoint>,
+}
+
+/// The keystrokes of one second, recorded while the replay runs.
+///
+/// Only seconds that contain keys get a mark, so memory is bounded by the keystroke count
+/// even before the timing checks have bounded the length of the test.
+#[derive(Debug, Clone, Copy, Default)]
+struct SecondMark {
+    /// Zero-based second of the test, from [`second_of`].
+    second: u32,
+    /// Character keys (not backspace) typed in this second.
+    chars: u32,
+    /// Character keys in this second that did not match the text.
+    errors: u32,
+    /// Characters that counted toward WPM when this second's first key arrived. That is also
+    /// the count at the end of every earlier second without keys.
+    correct_chars_before: u32,
+}
+
+/// The second a keystroke belongs to. A key at exactly 1,000 ms closes the first second.
+fn second_of(time_ms: u32) -> u32 {
+    time_ms.saturating_sub(1) / 1_000
 }
 
 /// Hits and misses for one expected key, indexed by its ASCII byte in [`Replay`].
@@ -207,60 +245,77 @@ pub fn evaluate(
     if u64::from(replay.elapsed_ms) > since_issue_ms + CLOCK_TOLERANCE_MS {
         return Err(Rejection::SubmittedTooEarly);
     }
-    // Runs only after the timing checks, which bound `elapsed_ms` and so the bucket count.
-    let consistency = consistency(
-        keys,
-        times_ms,
-        replay.elapsed_ms,
-        ticket.mode.time_limit_ms().is_none(),
-    );
-    replay.into_scored(consistency)
+    replay.into_scored(ticket.mode.time_limit_ms().is_none())
+}
+
+/// Expands the sparse per-second marks of a replay into one point per scored second.
+///
+/// A word test also scores its last partial second when it is at least half a second long; a
+/// time test always ends on a whole second. Keys in an unscored partial second count only
+/// toward the WPM of the last point.
+///
+/// # Arguments
+///
+/// * `marks` - The replay's marks, in ascending order of `second`
+/// * `final_correct_chars` - Characters that count toward WPM at the end of the test
+/// * `elapsed_ms` - The scored duration of the test. It must already be bounded, because the
+///   result has one point per second.
+/// * `scores_partial_second` - Whether a final partial second gets its own point
+///
+/// # Returns
+///
+/// The points, empty when the test lasted less than one scored second.
+fn timeline(
+    marks: &[SecondMark],
+    final_correct_chars: u32,
+    elapsed_ms: u32,
+    scores_partial_second: bool,
+) -> Vec<TimelinePoint> {
+    let whole_seconds = elapsed_ms / 1_000;
+    let tail_ms = elapsed_ms % 1_000;
+    let has_tail = scores_partial_second && tail_ms >= 500;
+    // Index of the first mark not yet consumed. Marks ascend, so one forward pass pairs them.
+    let mut next = 0;
+    (0..whole_seconds + u32::from(has_tail))
+        .map(|second| {
+            let here = marks.get(next).filter(|mark| mark.second == second);
+            if here.is_some() {
+                next += 1;
+            }
+            // The next second with keys starts from what this second ended with.
+            let correct_chars = marks
+                .get(next)
+                .map_or(final_correct_chars, |mark| mark.correct_chars_before);
+            let (span_s, through_s) = if second < whole_seconds {
+                (1.0, f64::from(second + 1))
+            } else {
+                let tail_s = f64::from(tail_ms) / 1_000.0;
+                (tail_s, f64::from(whole_seconds) + tail_s)
+            };
+            // Characters / 5 per minute is characters * 12 per second.
+            let per_minute = |chars: u32, seconds: f64| f64::from(chars) * 12.0 / seconds;
+            TimelinePoint {
+                wpm: round2(per_minute(correct_chars, through_s)),
+                raw_wpm: per_minute(here.map_or(0, |mark| mark.chars), span_s).round(),
+                errors: here.map_or(0, |mark| mark.errors),
+            }
+        })
+        .collect()
 }
 
 /// Steadiness from the raw speed of each second of the test.
 ///
-/// Character keys (not backspace) are counted per one-second bucket, and each bucket becomes a
-/// raw WPM, rounded. A word test also scores its last partial second when it is at least half a
-/// second long; a time test always ends on a whole second.
-///
 /// # Arguments
 ///
-/// * `keys` - Every key pressed, in order
-/// * `times_ms` - Milliseconds since the first keystroke, one per key, non-decreasing
-/// * `elapsed_ms` - The scored duration of the test
-/// * `scores_partial_second` - Whether a final partial second gets its own bucket
+/// * `timeline` - One point per scored second, from [`timeline`]
 ///
 /// # Returns
 ///
-/// A score from 0 to 100; 0 when there is no full bucket or no typing in them.
-fn consistency(keys: &str, times_ms: &[u32], elapsed_ms: u32, scores_partial_second: bool) -> f64 {
-    let whole_seconds = elapsed_ms / 1_000;
-    let tail_ms = elapsed_ms % 1_000;
-    let has_tail = scores_partial_second && tail_ms >= 500;
-    let mut counts = vec![0_u32; whole_seconds as usize + usize::from(has_tail)];
-    for (key, &time_ms) in keys.chars().zip(times_ms) {
-        if key == BACKSPACE {
-            continue;
-        }
-        // A key at exactly 1,000 ms closes the first second. Keys in an unscored partial
-        // second fall past the end of `counts` and are dropped.
-        let bucket = (time_ms.saturating_sub(1) / 1_000) as usize;
-        if let Some(count) = counts.get_mut(bucket) {
-            *count += 1;
-        }
-    }
-
+/// A score from 0 to 100; 0 when there is no scored second or no typing in them.
+fn consistency(timeline: &[TimelinePoint]) -> f64 {
     let mut spread = Spread::default();
-    for (index, &count) in counts.iter().enumerate() {
-        let seconds = if index < whole_seconds as usize {
-            1.0
-        } else {
-            f64::from(tail_ms) / 1_000.0
-        };
-        // Characters / 5 per minute is characters * 12 per second.
-        spread.push((f64::from(count) * 12.0 / seconds).round());
-    }
-    // Also covers no buckets at all, where the mean stays 0.
+    timeline.iter().for_each(|point| spread.push(point.raw_wpm));
+    // Also covers an empty timeline, where the mean stays 0.
     if spread.mean == 0.0 {
         return 0.0;
     }
@@ -312,6 +367,8 @@ struct Replay<'t> {
     word_index: usize,
     /// Characters (not bytes) in the current word, so a non-ASCII key cannot shift positions.
     word_chars: usize,
+    /// Characters credited toward WPM by committed correct words, each with its space.
+    committed_correct_chars: u32,
     correct_keystrokes: u32,
     incorrect_keystrokes: u32,
     /// Per expected key, indexed by its ASCII byte. The text is ASCII, so a fixed array is an
@@ -319,6 +376,8 @@ struct Replay<'t> {
     key_tallies: [KeyTally; 128],
     /// Gaps between keystrokes, for the anti-cheat rhythm check.
     intervals: Spread,
+    /// Keystrokes per second, for the timeline.
+    seconds: Vec<SecondMark>,
     elapsed_ms: u32,
     /// Whether a word test reached its end. Always `false` for a time test.
     finished: bool,
@@ -340,10 +399,12 @@ impl<'t> Replay<'t> {
             word_start: 0,
             word_index: 0,
             word_chars: 0,
+            committed_correct_chars: 0,
             correct_keystrokes: 0,
             incorrect_keystrokes: 0,
             key_tallies: [KeyTally::default(); 128],
             intervals: Spread::default(),
+            seconds: Vec::new(),
             elapsed_ms: 0,
             finished: false,
             ended_on_space: false,
@@ -371,6 +432,26 @@ impl<'t> Replay<'t> {
                 replay.intervals.push(f64::from(time_ms - previous_ms));
             }
             previous_ms = time_ms;
+
+            let second = second_of(time_ms);
+            // `is_none_or` is true for an empty list or a mark from an earlier second.
+            if replay
+                .seconds
+                .last()
+                .is_none_or(|mark| mark.second != second)
+            {
+                let correct_chars_before = replay.correct_chars();
+                replay.seconds.push(SecondMark {
+                    second,
+                    correct_chars_before,
+                    ..SecondMark::default()
+                });
+            }
+            if key != BACKSPACE
+                && let Some(mark) = replay.seconds.last_mut()
+            {
+                mark.chars += 1;
+            }
 
             finished = match key {
                 BACKSPACE => {
@@ -425,6 +506,10 @@ impl<'t> Replay<'t> {
             if let Some(tally) = tally {
                 tally.misses += 1;
             }
+            // Keys are recorded only inside the replay loop, after it marked their second.
+            if let Some(mark) = self.seconds.last_mut() {
+                mark.errors += 1;
+            }
         }
     }
 
@@ -453,9 +538,15 @@ impl<'t> Replay<'t> {
             .get(self.word_chars)
             .copied()
             .unwrap_or(b' ');
-        self.record(self.current_word() == self.target(), Some(expected));
+        let correct = self.current_word() == self.target();
+        self.record(correct, Some(expected));
         if self.is_last_word() {
             return true;
+        }
+        if correct {
+            // A correct word is locked against backspace, so this credit is never taken back.
+            // Word lengths are tiny, so the cast cannot truncate.
+            self.committed_correct_chars += self.word_chars as u32 + 1;
         }
         self.typed.push(' ');
         self.word_start = self.typed.len();
@@ -502,24 +593,17 @@ impl<'t> Replay<'t> {
     }
 
     /// Characters that count toward WPM: each correctly committed word plus its space, and
-    /// the correct prefix of the word in progress.
-    fn correct_chars(&self) -> usize {
-        let committed: usize = self
-            .committed_words()
-            .filter(|(typed, target)| typed == target)
-            .map(|(typed, _)| typed.len() + 1)
-            .sum();
-        if self.finished {
-            // The last word ends the test without a space, so it earns no space credit.
-            return committed - usize::from(self.current_word() == self.target());
-        }
+    /// the correct prefix of the word in progress. The last word of a finished word test ends
+    /// the test without a space, so it earns no space credit, and only if it is right.
+    fn correct_chars(&self) -> u32 {
         let current = self.current_word();
-        let in_progress = if self.target().starts_with(current) {
-            current.len()
+        let credited = if self.finished {
+            current == self.target()
         } else {
-            0
+            self.target().starts_with(current)
         };
-        committed + in_progress
+        // The current word is at most one test word plus a few extra letters.
+        self.committed_correct_chars + if credited { current.len() as u32 } else { 0 }
     }
 
     fn breakdown(&self) -> Breakdown {
@@ -552,7 +636,11 @@ impl<'t> Replay<'t> {
         self.typed.chars().count() + usize::from(self.ended_on_space)
     }
 
-    fn into_scored(self, consistency: f64) -> Result<Scored, Rejection> {
+    /// Applies the speed and rhythm checks, then computes the scores.
+    ///
+    /// `scores_partial_second` is whether a final partial second gets its own timeline point.
+    /// The caller must already have bounded `elapsed_ms`, which sets the timeline's length.
+    fn into_scored(self, scores_partial_second: bool) -> Result<Scored, Rejection> {
         let typed_keystrokes = self.correct_keystrokes + self.incorrect_keystrokes;
         if typed_keystrokes == 0 {
             return Err(Rejection::Empty);
@@ -572,13 +660,20 @@ impl<'t> Replay<'t> {
             return Err(Rejection::InhumanRhythm);
         }
 
+        let correct_chars = self.correct_chars();
+        let timeline = timeline(
+            &self.seconds,
+            correct_chars,
+            self.elapsed_ms,
+            scores_partial_second,
+        );
         let stats = TestStats {
-            wpm: round2(words_per_minute(self.correct_chars() as f64)),
+            wpm: round2(words_per_minute(f64::from(correct_chars))),
             raw_wpm: round2(words_per_minute(self.final_chars() as f64)),
             accuracy: round2(
                 f64::from(self.correct_keystrokes) * 100.0 / f64::from(typed_keystrokes),
             ),
-            consistency,
+            consistency: consistency(&timeline),
             correct_keystrokes: self.correct_keystrokes,
             incorrect_keystrokes: self.incorrect_keystrokes,
             elapsed_ms: self.elapsed_ms,
@@ -586,6 +681,7 @@ impl<'t> Replay<'t> {
         Ok(Scored {
             stats,
             breakdown: self.breakdown(),
+            timeline,
         })
     }
 }
@@ -1121,15 +1217,38 @@ mod tests {
         assert_eq!(stats.consistency, 65.99);
     }
 
+    /// Marks for `keys` at `times` with no errors and no WPM credit, as the replay records
+    /// them, for testing [`timeline`] and [`consistency`] on their own.
+    fn marks(keys: &str, times: &[u32]) -> Vec<SecondMark> {
+        let mut marks: Vec<SecondMark> = Vec::new();
+        for (key, &time_ms) in keys.chars().zip(times) {
+            let second = second_of(time_ms);
+            if marks.last().is_none_or(|mark| mark.second != second) {
+                marks.push(SecondMark {
+                    second,
+                    ..SecondMark::default()
+                });
+            }
+            if key != BACKSPACE {
+                marks.last_mut().expect("a mark was just pushed").chars += 1;
+            }
+        }
+        marks
+    }
+
+    fn consistency_of(keys: &str, times: &[u32], elapsed_ms: u32, partial: bool) -> f64 {
+        consistency(&timeline(&marks(keys, times), 0, elapsed_ms, partial))
+    }
+
     #[test]
     fn partial_last_second_counts_only_for_word_tests_from_half_a_second() {
         let keys = "a".repeat(12);
         let mut times = times_per_second(&[5, 5]);
         times.extend([2_100, 2_400]);
 
-        assert_eq!(consistency(&keys, &times, 2_600, true), 82.32);
-        assert_eq!(consistency(&keys, &times, 2_600, false), 100.0);
-        assert_eq!(consistency(&keys, &times, 2_400, true), 100.0);
+        assert_eq!(consistency_of(&keys, &times, 2_600, true), 82.32);
+        assert_eq!(consistency_of(&keys, &times, 2_600, false), 100.0);
+        assert_eq!(consistency_of(&keys, &times, 2_400, true), 100.0);
     }
 
     #[test]
@@ -1138,12 +1257,60 @@ mod tests {
         let mut times = times_per_second(&[10]);
         times.extend(times_per_second(&[0, 5]));
 
-        assert_eq!(consistency(keys, &times, 2_000, false), 100.0);
+        assert_eq!(consistency_of(keys, &times, 2_000, false), 100.0);
     }
 
     #[test]
     fn consistency_is_zero_without_a_full_second() {
-        assert_eq!(consistency("abc", &[0, 200, 400], 900, false), 0.0);
+        assert_eq!(consistency_of("abc", &[0, 200, 400], 900, false), 0.0);
+    }
+
+    #[test]
+    fn timeline_has_a_point_per_second_ending_at_the_test_wpm() {
+        let keys = perfect_keys(&targets(TestMode::Words10));
+        let mut times = human_times(keys.len());
+        // End the test on a whole second, so its last second is fully scored.
+        let last = times.len() - 1;
+        times[last] = (times[last - 1] / 1_000 + 1) * 1_000;
+
+        let scored = score_late(TestMode::Words10, &keys, &times).expect("valid submission");
+
+        assert_eq!(
+            scored.timeline.len(),
+            (scored.stats.elapsed_ms / 1_000) as usize
+        );
+        let last_point = scored
+            .timeline
+            .last()
+            .expect("the test lasts over a second");
+        assert_eq!(last_point.wpm, scored.stats.wpm);
+        assert!(scored.timeline.iter().all(|point| point.errors == 0));
+    }
+
+    #[test]
+    fn timeline_places_errors_in_their_second() {
+        let words = targets(TestMode::Time15);
+        // Second 0 types the first word right; second 2 types a wrong letter; second 1 is idle.
+        let first = words[0];
+        let mut keys = format!("{first} ");
+        let mut times: Vec<u32> = (0..keys.len() as u32).map(|i| 100 + i * 50).collect();
+        let wrong = if words[1].starts_with('x') { 'z' } else { 'x' };
+        keys.push(wrong);
+        times.push(2_500);
+
+        let scored = score_late(TestMode::Time15, &keys, &times).expect("valid submission");
+
+        let timeline = &scored.timeline;
+        assert_eq!(timeline.len(), 15);
+        assert_eq!(timeline[0].errors, 0);
+        assert_eq!(timeline[2].errors, 1);
+        assert_eq!(timeline.iter().map(|p| p.errors).sum::<u32>(), 1);
+        assert_eq!(timeline[1].raw_wpm, 0.0);
+        assert_eq!(timeline[2].raw_wpm, 12.0);
+        // The first word and its space stay credited while the clock runs on.
+        let credited = f64::from(first.len() as u32 + 1);
+        assert_eq!(timeline[1].wpm, round2(credited * 12.0 / 2.0));
+        assert_eq!(timeline[14].wpm, scored.stats.wpm);
     }
 
     #[test]

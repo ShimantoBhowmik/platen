@@ -25,7 +25,7 @@ use uuid::Uuid;
 
 use crate::error::AppError;
 use crate::mode::{ModeKind, ModeSpec, TestMode};
-use crate::scoring::{self, Breakdown, Scored, TestStats};
+use crate::scoring::{self, Breakdown, Scored, TestStats, TimelinePoint};
 use crate::store::{DisplayName, LeaderboardEntry, ResultStore, TestResult};
 use crate::token::{TestTicket, TokenSigner};
 use crate::words;
@@ -140,6 +140,7 @@ struct ResultView {
     name: Option<DisplayName>,
     stats: TestStats,
     breakdown: Breakdown,
+    timeline: Vec<TimelinePoint>,
     created_at: DateTime<Utc>,
 }
 
@@ -151,6 +152,7 @@ impl From<TestResult> for ResultView {
             name: result.name,
             stats: result.stats,
             breakdown: result.breakdown,
+            timeline: result.timeline,
             created_at: result.created_at,
         }
     }
@@ -169,14 +171,18 @@ async fn submit_result<S: ResultStore>(
     let now = Utc::now();
     // Scoring a maximal submission takes microseconds, far below the cost of moving it to the
     // blocking pool, so it runs inline on the async worker.
-    let Scored { stats, breakdown } =
-        scoring::evaluate(&ticket, &submission.keys, &submission.times, unix_ms(now))?;
+    let Scored {
+        stats,
+        breakdown,
+        timeline,
+    } = scoring::evaluate(&ticket, &submission.keys, &submission.times, unix_ms(now))?;
     let result = TestResult {
         id: ticket.id,
         mode: ticket.mode,
         name,
         stats,
         breakdown,
+        timeline,
         created_at: now,
     };
     state.store.save(&result).await?;
@@ -366,6 +372,14 @@ mod tests {
         assert_eq!(created["stats"]["accuracy"], 100.0);
         assert_eq!(created["breakdown"]["missed_words"], json!([]));
         assert_eq!(created["breakdown"]["keys"][0]["misses"], 0);
+        // One point per scored second: a word test also scores a final partial second of at
+        // least half a second. The words are random, so the end time is not fixed.
+        let elapsed_ms = created["stats"]["elapsed_ms"]
+            .as_u64()
+            .expect("elapsed is a number");
+        let points = elapsed_ms / 1_000 + u64::from(elapsed_ms % 1_000 >= 500);
+        let timeline = created["timeline"].as_array().expect("timeline is a list");
+        assert_eq!(timeline.len() as u64, points);
 
         let id = created["id"].as_str().expect("id is a string");
         let (status, fetched) = call(&app, "GET", &format!("/api/results/{id}"), None).await;

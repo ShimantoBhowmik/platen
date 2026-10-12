@@ -1,15 +1,22 @@
 //! type-cast web app: a typing test typed on an isometric typewriter.
 
 mod api;
+mod chart;
 mod figure;
+mod report;
 mod session;
 mod sound;
 
+use std::rc::Rc;
+
 use dioxus::prelude::*;
 use gloo_timers::future::TimeoutFuture;
+use web_sys::wasm_bindgen::JsCast;
+use web_sys::{FocusOptions, HtmlElement};
 
-use crate::api::{ModeKind, ModeSpec, NewTest, Stats};
+use crate::api::{ModeKind, ModeSpec, NewTest, Report};
 use crate::figure::FIGURE;
+use crate::report::ResultPlate;
 use crate::session::{Effect, Ink, Session, Stroke};
 use crate::sound::Cue;
 
@@ -39,8 +46,8 @@ enum Phase {
     Running,
     /// Sent to the server, waiting for the verified scores.
     Scoring,
-    /// The server's verified result.
-    Done(Stats),
+    /// The server's verified result. `Rc` makes the frequent clones of the phase cheap.
+    Done(Rc<Report>),
     /// Something failed; the message says what and the hint says how to recover.
     Failed(String),
 }
@@ -102,6 +109,23 @@ fn initial_theme() -> Theme {
     }
 }
 
+/// Focuses the typing stage without scrolling it into view, so tapping a rail chip on a phone
+/// never moves the page.
+fn focus_stage() {
+    // `dyn_into` is a checked downcast from the generic DOM `Element` to `HtmlElement`, which
+    // is the type that can take focus.
+    let stage = web_sys::window()
+        .and_then(|w| w.document())
+        .and_then(|d| d.get_element_by_id("tw-stage"))
+        .and_then(|element| element.dyn_into::<HtmlElement>().ok());
+    if let Some(stage) = stage {
+        let options = FocusOptions::new();
+        options.set_prevent_scroll(true);
+        // Focus can only fail on a detached element; typing then waits for a click.
+        let _ = stage.focus_with_options(&options);
+    }
+}
+
 fn reduced_motion() -> bool {
     web_sys::window()
         .and_then(|w| {
@@ -117,11 +141,6 @@ fn mode_label(spec: ModeSpec) -> String {
         ModeKind::Time => format!("{}s", spec.amount),
         ModeKind::Words => format!("{}", spec.amount),
     }
-}
-
-fn clock(ms: u32) -> String {
-    let seconds = ms.div_ceil(1_000);
-    format!("{}:{:02}", seconds / 60, seconds % 60)
 }
 
 /// Everything the machine animates, set by a key press and cleared by timers.
@@ -150,16 +169,7 @@ fn App() -> Element {
     let mut motion = use_signal(Motion::default);
     let mut bell_line = use_signal(|| None::<usize>);
     let mut generation = use_signal(|| 0_u64);
-    let mut stage = use_signal(|| None::<std::rc::Rc<MountedData>>);
     let calm = use_hook(reduced_motion);
-
-    let focus_stage = move || {
-        if let Some(stage) = stage() {
-            spawn(async move {
-                let _ = stage.set_focus(true).await;
-            });
-        }
-    };
 
     let mut load = move |spec: ModeSpec| {
         generation += 1;
@@ -205,7 +215,7 @@ fn App() -> Element {
                 return;
             }
             phase.set(match result {
-                Ok(stats) => Phase::Done(stats),
+                Ok(report) => Phase::Done(Rc::new(report)),
                 Err(error) => Phase::Failed(format!("Not scored: {error}.")),
             });
         });
@@ -354,46 +364,43 @@ fn App() -> Element {
     let elapsed_ms = started().map_or(0.0, |start| now() - start).max(0.0) as u32;
     let typed = session();
     let spec = mode();
-    let readout = match phase() {
+    let current = phase();
+    let done = match current {
+        Phase::Done(ref report) => Some(Rc::clone(report)),
+        _ => None,
+    };
+    // The countdown: whole seconds left, or words done out of the total.
+    let countdown = match current {
+        Phase::Ready | Phase::Running => Some(match spec.limit_ms() {
+            Some(limit) => (
+                limit.saturating_sub(elapsed_ms).div_ceil(1_000).to_string(),
+                None,
+            ),
+            None => (
+                typed.as_ref().map_or(0, Session::words_done).to_string(),
+                Some(format!("/{}", spec.amount)),
+            ),
+        }),
+        _ => None,
+    };
+    let readout = match current {
         Phase::Loading => "feeding paper".to_owned(),
-        Phase::Ready => match spec.limit_ms() {
-            Some(limit) => format!("{} · ready", clock(limit)),
-            None => format!("0 / {} words · ready", spec.amount),
-        },
-        Phase::Running => {
-            let wpm = typed.as_ref().map_or(0.0, |s| s.live_wpm(elapsed_ms));
-            let accuracy = typed
-                .as_ref()
-                .and_then(Session::live_accuracy)
-                .map_or("--".to_owned(), |a| format!("{a:.0}%"));
-            let progress = match spec.limit_ms() {
-                Some(limit) => clock(limit.saturating_sub(elapsed_ms)),
-                None => format!(
-                    "{} / {}",
-                    typed.as_ref().map_or(0, Session::words_done),
-                    spec.amount
-                ),
-            };
-            format!("{progress} · {wpm:.0} wpm · {accuracy}")
-        }
+        Phase::Ready => "ready".to_owned(),
+        Phase::Running => "typing".to_owned(),
         Phase::Scoring => "checking the sheet".to_owned(),
-        Phase::Done(stats) => format!(
-            "{:.1} wpm · {:.1}% · raw {:.0} · steady {:.0}",
-            stats.wpm, stats.accuracy, stats.raw_wpm, stats.consistency
-        ),
+        Phase::Done(_) => "verified by the server".to_owned(),
         Phase::Failed(ref message) => message.clone(),
     };
-    let hint = match phase() {
+    let hint = match current {
         Phase::Ready => "Type to begin · Esc for a fresh sheet",
-        Phase::Running => "Esc for a fresh sheet",
-        Phase::Done(_) => "Verified by the server · Esc to go again",
+        Phase::Running | Phase::Done(_) => "Esc for a fresh sheet",
         Phase::Failed(_) => "Esc to try again",
         Phase::Loading | Phase::Scoring => "",
     };
-    let status = match phase() {
-        Phase::Done(stats) => format!(
+    let status = match current {
+        Phase::Done(ref report) => format!(
             "Test scored. {:.1} words per minute, {:.1} percent accuracy.",
-            stats.wpm, stats.accuracy
+            report.stats.wpm, report.stats.accuracy
         ),
         Phase::Failed(ref message) => message.clone(),
         _ => String::new(),
@@ -438,9 +445,14 @@ fn App() -> Element {
             .collect::<String>()
     });
 
-    let title = match spec.mode {
-        ModeKind::Time => format!("typewriter · {} test", mode_label(spec)),
-        ModeKind::Words => format!("typewriter · {} words", spec.amount),
+    let test_name = match spec.mode {
+        ModeKind::Time => format!("{} test", mode_label(spec)),
+        ModeKind::Words => format!("{} words", spec.amount),
+    };
+    let title = if done.is_some() {
+        format!("speed per second · {test_name}")
+    } else {
+        format!("typewriter · {test_name}")
     };
 
     rsx! {
@@ -511,22 +523,39 @@ fn App() -> Element {
             }
             main { class: "iso-plate tw-plate",
                 div { class: "iso-plate-corners",
-                    span { class: "iso-plate-corner", "data-corner": "fig", "Fig 1" }
+                    span { class: "iso-plate-corner", "data-corner": "fig", if done.is_some() { "Fig 2" } else { "Fig 1" } }
                     span { class: "iso-plate-corner", "data-corner": "title", "{title}" }
                     span { class: "iso-plate-corner", "data-corner": "hint", "{hint}" }
-                    span { class: "iso-plate-corner tw-readout", "data-corner": "readout", "data-phase": if matches!(phase(), Phase::Done(_)) { "done" } else { "" }, "{readout}" }
+                    span { class: "iso-plate-corner tw-readout", "data-corner": "readout", "data-phase": if done.is_some() { "done" } else { "" }, "{readout}" }
+                }
+                if let Some((big, small)) = countdown {
+                    div {
+                        class: "tw-count",
+                        role: "timer",
+                        aria_label: if spec.mode == ModeKind::Time { "Seconds left" } else { "Words typed" },
+                        "data-live": "{current == Phase::Running}",
+                        "{big}"
+                        if let Some(small) = small {
+                            span { class: "tw-count-of", "{small}" }
+                        }
+                    }
                 }
                 div {
                     id: "tw-stage",
                     class: "tw-stage",
                     tabindex: "0",
-                    role: "application",
+                    // Application mode passes every key to the typewriter; the result is a
+                    // region, so screen readers can browse its figures and lists.
+                    role: if done.is_some() { "region" } else { "application" },
                     style: "{crop}",
-                    aria_label: "Typewriter. Type the faint text on the sheet. Escape gives a fresh sheet.",
+                    "data-done": "{done.is_some()}",
+                    aria_label: if done.is_some() { "Result. Escape gives a fresh sheet." } else { "Typewriter. Type the faint text on the sheet. Escape gives a fresh sheet." },
                     autofocus: true,
-                    onmounted: move |event| stage.set(Some(event.data())),
                     onclick: move |_| focus_stage(),
                     onkeydown,
+                    if let Some(report) = done.clone() {
+                        ResultPlate { report, spec }
+                    } else {
                     svg {
                         class: "iso-svg tw-svg",
                         view_box: "0 0 {FIGURE.width} {FIGURE.height}",
@@ -600,17 +629,26 @@ fn App() -> Element {
                             }
                         }
                     }
-                    if let Some(line) = target_line {
+                    }
+                    if let Some(line) = target_line.filter(|_| done.is_none()) {
                         p { class: "tw-sr", "Current line: {line.trim_end()}" }
                     }
                     p { class: "tw-sr", role: "status", aria_live: "polite", "{status}" }
                 }
             }
             footer { class: "iso-legend tw-legend",
-                div { class: "iso-keys",
-                    span { class: "iso-key", span { class: "tw-swatch", "data-ink": "hit" } "Typed right: black ribbon" }
-                    span { class: "iso-key", span { class: "tw-swatch", "data-ink": "miss" } "Typed wrong: red ribbon over the copy" }
-                    span { class: "iso-key", span { class: "tw-swatch", "data-ink": "copy" } "Still to type: faint copy" }
+                if done.is_some() {
+                    div { class: "iso-keys",
+                        span { class: "iso-key", span { class: "tw-swatch", "data-ink": "wpm" } "wpm so far" }
+                        span { class: "iso-key", span { class: "tw-swatch", "data-ink": "raw" } "raw wpm of each second" }
+                        span { class: "iso-key", span { class: "tw-swatch", "data-ink": "error" } "Wrong keys per second, right scale" }
+                    }
+                } else {
+                    div { class: "iso-keys",
+                        span { class: "iso-key", span { class: "tw-swatch", "data-ink": "hit" } "Right: black ribbon" }
+                        span { class: "iso-key", span { class: "tw-swatch", "data-ink": "miss" } "Wrong: red ribbon over the copy" }
+                        span { class: "iso-key", span { class: "tw-swatch", "data-ink": "copy" } "Still to type: faint copy" }
+                    }
                 }
             }
         }

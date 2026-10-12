@@ -47,6 +47,12 @@ test ("typewriter · 30s test"), as anatomy cards do; the brand sits in the rail
 on a stand behind the sheet carries the next two lines of copy, so the learner can read ahead.
 The camera sits at azimuth 80 so the sheet's baseline slopes about 5 degrees. On phones the
 card crops to the carriage around the strike point.
+Later, by user decision: the live readout is replaced by a large countdown in the bench corner
+left of the copy holder (seconds left, or words done out of the total), and wpm and accuracy
+appear only after the test. When the server returns the result, the card swaps the typewriter
+for Fig 2, the result plate: large wpm and accuracy, a hairline chart of wpm so far and raw wpm
+per second with red error marks on a right-hand axis, a stats row, the weakest keys and the
+words left wrong. Large figures are set in Courier Prime 700 as the machine's figures.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review,
 the verdict, DESIGN.md, and every shipping raster carrying its provenance

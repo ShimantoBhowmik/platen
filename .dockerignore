@@ -1,0 +1,7 @@
+.git
+.env
+target
+web/target
+web/dist
+agent-testing
+.impeccable

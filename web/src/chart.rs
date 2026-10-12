@@ -175,7 +175,14 @@ pub fn layout(timeline: &[TimelinePoint], width: f64, height: f64) -> Option<Cha
     if timeline.is_empty() {
         return None;
     }
-    let plot = [LEFT, TOP, width - RIGHT, height - BOTTOM];
+    // A resize can briefly measure the box smaller than the margins; the plot then collapses
+    // to a point instead of turning inside out, which would give SVG negative widths.
+    let plot = [
+        LEFT,
+        TOP,
+        (width - RIGHT).max(LEFT),
+        (height - BOTTOM).max(TOP),
+    ];
     let [left, top, right, bottom] = plot;
     let plot_height = bottom - top;
     let peak = timeline.iter().fold(0.0_f64, |peak, point| {
@@ -404,6 +411,17 @@ mod tests {
 
         let [left, _, right, _] = chart.plot;
         assert_eq!(chart.samples[0].x, (left + right) / 2.0);
+    }
+
+    #[test]
+    fn a_box_smaller_than_the_margins_draws_no_negative_sizes() {
+        let timeline = vec![point(50.0, 50.0, 1); 10];
+
+        let chart = layout(&timeline, 16.4, 20.0).expect("non-empty timeline");
+
+        let [left, top, right, bottom] = chart.plot;
+        assert_eq!((right, bottom), (left, top));
+        assert_eq!(chart.column_width, 0.0);
     }
 
     #[test]

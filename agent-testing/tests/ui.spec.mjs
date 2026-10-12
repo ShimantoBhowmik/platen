@@ -190,14 +190,18 @@ test("typing plays the recorded typewriter clips", async ({ page }, testInfo) =>
     await openApp(page);
     const words = await chooseMode(page, "10");
 
-    const keys = `${words[0]} `;
+    const keys = `${words[0]} ${words[1][0]}`;
     await typeLikeHuman(page, keys);
+    await page.keyboard.press("Backspace");
 
-    await expect.poll(() => page.evaluate(() => window.played.length)).toBe(keys.length);
+    await expect.poll(() => page.evaluate(() => window.played.length)).toBe(keys.length + 1);
     const played = await page.evaluate(() => window.played);
-    // Clacks and the space bar are 160 ms cuts of the recording.
+    const backspace = played.pop();
+    // Clacks and the space bar are 160 ms cuts of the recording; the backspace is a lighter
+    // 120 ms tick, not the space bar's thump.
     for (const clip of played) expect(clip.seconds).toBeCloseTo(0.16, 3);
-    const clacks = new Set(played.slice(0, -1).map((clip) => clip.sample));
+    expect(backspace.seconds).toBeCloseTo(0.12, 3);
+    const clacks = new Set(played.slice(0, words[0].length).map((clip) => clip.sample));
     expect(clacks.size, "consecutive keys use different clack variants").toBe(
         Math.min(words[0].length, 6),
     );

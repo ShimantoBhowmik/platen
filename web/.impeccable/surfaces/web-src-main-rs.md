@@ -63,3 +63,7 @@ from the front: the sheet stays still across the platen and a type element trave
 The plate drops "Fig 1/Fig 2" and the top-right title. The rail of uppercase chips became a
 quiet bar: the brand in Courier Prime, a time/words segmented control with the four lengths of
 the chosen kind, and icon buttons for sound, theme and a new sheet.
+
+Later, by user decision (2026-10-12): the sheet shows the copy three lines at a time in faint
+grey, the way a modern typing test does, and the copy holder is gone. The keyboard is drawn at
+a real machine's scale against the sheet, with letters printed on the key tops.

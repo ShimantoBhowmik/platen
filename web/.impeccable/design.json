@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-12T12:00:00.000Z",
+  "generatedAt": "2026-10-12T13:00:00.000Z",
   "title": "Design System: platen",
   "extensions": {
     "colorMeta": {
@@ -602,15 +602,15 @@
     "typographyMeta": {
       "sheet-type": {
         "displayName": "Sheet Type",
-        "purpose": "Letters typed right on the current line; drawing units on a 12.5-unit pitch cell, 80 cells across the fixed sheet."
+        "purpose": "Letters typed right; drawing units on a 12.5-unit pitch cell and a 32-unit line, 80 cells across the fixed sheet."
       },
       "sheet-copy": {
         "displayName": "Sheet Copy",
-        "purpose": "Practice copy still to type, and copy left under a miss."
+        "purpose": "Practice copy still to type on each of the sheet's three rows, and copy left under a miss."
       },
-      "holder-copy": {
-        "displayName": "Holder Copy",
-        "purpose": "Next two lines on the copy holder behind the sheet."
+      "key-label": {
+        "displayName": "Key Label",
+        "purpose": "The letter printed on each key top, upper case, in the top plane so it sinks with the key; 9 units, lower case, for shift, back and return."
       },
       "label": {
         "displayName": "Label",
@@ -695,7 +695,7 @@
       {
         "name": "anatomy-ease",
         "value": "cubic-bezier(.32,.72,0,1)",
-        "purpose": "Segment and icon state changes (160ms), line feed (260ms), figure dim (240ms)."
+        "purpose": "Segment and icon state changes (160ms), line feed (260ms, the three clipped rows glide one row), figure dim (240ms)."
       },
       {
         "name": "carrier-return",
@@ -875,9 +875,9 @@
   ],
   "narrative": {
     "northStar": "The Anatomy Plate",
-    "overview": "\n**Creative North Star: \"The Anatomy Plate\"**\n\nOne typewriter, drawn as a technical figure on a framed card, is the whole interface. It is a wide typeball electric seen straight from the front: the sheet stays still across the full width of the platen and a small type element travels along it, so a whole line of eleven words stays in view at a readable size and on a level baseline. The copy is printed faint on the paper, the learner types over it, and the machine answers each key with a stepped mechanical response. Around the figure sit a hairline frame, two bottom captions, a legend under the card, and a quiet bar above it: the brand, two segmented controls for the test length and three icon tools. When the server returns the score, the same card shows the result plate: the machine's figures, a hairline speed chart, a stats row and what to practise next.\n\nThe world is monochrome. The bench, card and machine are four-tone grey solids with 0.6px hairline outlines, screws drawn as dots, and ruler ticks cut to the type pitch. Colour exists only as ribbon ink: a black ribbon for correct letters and the red half of a bichrome ribbon for misses, on the paper and, lifted for contrast, on the result plate. The only lit part of the drawing is the strike-point mark. Dark (charcoal bench) and light (paper-white bench) are the same drawing with each tone remapped; the theme follows the system preference and has a toggle.\n\nDensity is low and fixed. The card holds a 2.2:1 stage inside whatever height the bar and legend leave, so the machine never scrolls on desktop, and the result plate fills the same stage so nothing jumps when it swaps in. Motion is mechanical, not decorative: the type element jumps one cell with no easing, a strike holds for two frames, and only the return and the line feed glide. The result chart is drawn once like a pen trace.\n",
+    "overview": "\n**Creative North Star: \"The Anatomy Plate\"**\n\nOne typewriter, drawn as a technical figure on a framed card, is the whole interface. It is a wide typeball electric seen straight from the front: the sheet stays still across the full width of the platen and a small type element travels along it, so a whole line of eleven words stays in view at a readable size and on a level baseline. Like a modern typing test, the sheet shows the copy three lines at a time in faint grey: the current line starts at the top, then holds the middle row with the finished line above it and the next line below. The keyboard is drawn at a real machine's scale against the sheet, with each key's letter on its top. The copy is printed faint on the paper, the learner types over it, and the machine answers each key with a stepped mechanical response. Around the figure sit a hairline frame, two bottom captions, a legend under the card, and a quiet bar above it: the brand, two segmented controls for the test length and three icon tools. When the server returns the score, the same card shows the result plate: the machine's figures, a hairline speed chart, a stats row and what to practise next.\n\nThe world is monochrome. The bench, card and machine are four-tone grey solids with 0.6px hairline outlines, screws drawn as dots, and ruler ticks cut to the type pitch. Colour exists only as ribbon ink: a black ribbon for correct letters and the red half of a bichrome ribbon for misses, on the paper and, lifted for contrast, on the result plate. The only lit part of the drawing is the strike-point mark. Dark (charcoal bench) and light (paper-white bench) are the same drawing with each tone remapped; the theme follows the system preference and has a toggle.\n\nDensity is low and fixed. The card holds a 2.2:1 stage inside whatever height the bar and legend leave, so the machine never scrolls on desktop, and the result plate fills the same stage so nothing jumps when it swaps in. Motion is mechanical, not decorative: the type element jumps one cell with no easing, a strike holds for two frames, and only the return and the line feed glide. The result chart is drawn once like a pen trace.\n",
     "keyCharacteristics": [
-      "One anatomy figure, seen from the front, owns the screen; the paper is the test surface and holds eleven words a line.",
+      "One anatomy figure, seen from the front, owns the screen; the paper is the test surface: three lines of eleven words, faint until typed.",
       "Four-tone monochrome solids, 0.6px hairlines, dots and ticks; no hue outside the ribbon's ink.",
       "One lit part: the strike-point mark.",
       "Courier Prime on the paper, for the machine's figures and for the brand; small system mono for every caption, control and axis.",
@@ -907,7 +907,7 @@
       },
       {
         "name": "The Two Faces Rule",
-        "body": "Courier Prime for paper, the machine's figures and the brand: the sheet, the copy holder, the countdown, the result figures, the stat values, the key discs, the typed missed words and \"platen\", always at 700 off the paper. System mono for everything else: captions, controls, the readout, axis labels, notes. No third family is shown; the sans stack on the page root is a fallback that no visible text uses.",
+        "body": "Courier Prime for paper, the machine's figures and the brand: the sheet, the key labels, the countdown, the result figures, the stat values, the key discs, the typed missed words and \"platen\", always at 700 off the paper. System mono for everything else: captions, controls, the readout, axis labels, notes. No third family is shown; the sans stack on the page root is a fallback that no visible text uses.",
         "section": "typography"
       },
       {

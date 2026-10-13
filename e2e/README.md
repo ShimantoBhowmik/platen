@@ -54,7 +54,7 @@ cluster. `PG_BIN` names the Postgres binary directory when it is not on `PATH`.
   - Hovering or tapping a second shows its numbers.
   - Escape gives a fresh sheet.
   - The page never scrolls sideways, and on desktop sizes it fits the window.
-- A 15 s time test counts down and is scored at its limit.
+- A 15 s time test shows three lines of copy, counts down and is scored at its limit.
 - Theme and sound choices survive a reload.
 - Typing plays the recorded typewriter clips, with a different clack for each key in a row, the space bar plays its own soft thock and tick, and backspace plays its own lighter tick.
 - Each test kind keeps the length last chosen for it.

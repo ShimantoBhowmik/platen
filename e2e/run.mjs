@@ -243,10 +243,14 @@ function cleanUp() {
     }
 }
 
-process.on("SIGINT", () => {
-    cleanUp();
-    process.exit(130);
-});
+// Ctrl-C, `kill` and a closed terminal all tear the stack down; otherwise the throwaway
+// Postgres and the server outlive the run and keep their ports.
+for (const [signal, code] of [["SIGINT", 130], ["SIGTERM", 143], ["SIGHUP", 129]]) {
+    process.on(signal, () => {
+        cleanUp();
+        process.exit(code);
+    });
+}
 
 let exitCode = 1;
 try {

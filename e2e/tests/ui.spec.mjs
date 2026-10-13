@@ -43,16 +43,17 @@ async function chooseMode(page, kind, label) {
 }
 
 /**
- * The words the sheet's first line holds: at most eleven, and at most 76 cells, the same rule
- * the app lays the copy out with.
+ * The sheet's lines: at most eleven words and at most 76 cells each, the same rule the app
+ * lays the copy out with.
  */
-function firstLine(words) {
-    const line = [];
+function sheetLines(words) {
+    const lines = [[]];
     for (const word of words) {
-        if (line.length === 11 || [...line, word].join(" ").length > 76) break;
-        line.push(word);
+        const line = lines[lines.length - 1];
+        if (line.length === 11 || [...line, word].join(" ").length > 76) lines.push([word]);
+        else line.push(word);
     }
-    return line.join(" ");
+    return lines.map((line) => line.join(" "));
 }
 
 /** The next result the app submits, as the server answered it. */
@@ -89,7 +90,7 @@ test("a word test typed on the keyboard ends in the verified result plate", asyn
     const count = page.locator(".tw-count");
     await expect(count).toHaveText("0/10");
     await expect(page.locator("[data-corner=fig]")).toHaveCount(0);
-    await expect(page.getByText(/^Current line: /)).toHaveText(`Current line: ${firstLine(words)}`);
+    await expect(page.getByText(/^Current line: /)).toHaveText(`Current line: ${sheetLines(words)[0]}`);
     await expectFits(page, testInfo);
     await screen(page, testInfo, "1-ready");
 
@@ -176,6 +177,11 @@ test("a time test counts down and is scored at its limit", async ({ page }, test
     const words = await chooseMode(page, "time", "15s");
     const count = page.locator(".tw-count");
     await expect(count).toHaveText("15");
+    // The sheet shows the copy three lines at a time, each drawn letter by letter.
+    const lines = sheetLines(words);
+    for (const row of [0, 1, 2]) {
+        await expect(page.locator(".tw-line").nth(row)).toHaveText(lines[row].replaceAll(" ", ""));
+    }
 
     await page.locator("#tw-stage").click();
     const scored = nextResult(page);

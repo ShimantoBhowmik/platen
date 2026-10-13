@@ -20,8 +20,6 @@ use crate::report::ResultPlate;
 use crate::session::{Effect, Ink, Session, Stroke};
 use crate::sound::Cue;
 
-/// Lines of printed text kept visible above the print line.
-const LINES_SHOWN: usize = 4;
 /// Most words on one line of the sheet.
 const WORDS_PER_LINE: usize = 11;
 /// Cells before the right end of a line where the margin bell rings.
@@ -477,24 +475,15 @@ fn App() -> Element {
     );
     let [px, py] = FIGURE.strike_point(cursor);
     let crop = format!("--cx: {:.2}%; --cy: {:.2}%", px * 100.0, py * 100.0);
-    let upcoming: Vec<(f64, String)> = typed
-        .as_ref()
-        .map(|s| {
-            (1..=2)
-                .filter(|ahead| current_line + ahead < s.line_count())
-                .map(|ahead| {
-                    let copy = s
-                        .cells(current_line + ahead)
-                        .iter()
-                        .map(|cell| cell.copy.unwrap_or(' '))
-                        .collect();
-                    (FIGURE.copy.baselines[ahead - 1], copy)
-                })
-                .collect()
-        })
-        .unwrap_or_default();
-    let first_line = current_line.saturating_sub(LINES_SHOWN);
     let text = &FIGURE.text;
+    // The sheet shows `rows` lines: the current line starts at the top, then stays on the
+    // second row with the finished line above it, so the next line is always in view.
+    let first_row = current_line.saturating_sub(1);
+    let line_count = typed.as_ref().map_or(0, Session::line_count);
+    // One line past each edge is drawn too, clipped, so lines glide in and out as the
+    // sheet feeds.
+    let drawn = first_row.saturating_sub(1)..(first_row + text.rows + 1).min(line_count);
+    let row_y = |line: usize| text.baseline + (line as f64 - first_row as f64) * text.line_h;
     let target_line = typed.as_ref().map(|s| {
         s.cells(current_line)
             .iter()
@@ -638,20 +627,6 @@ fn App() -> Element {
                         "aria-label": "{FIGURE.label}",
                         style: "{vars}",
                         Layer { markup: Markup(&FIGURE.back) }
-                        g { transform: "{FIGURE.copy_matrix}",
-                            for (baseline, copy) in upcoming {
-                                for (col, character) in copy.chars().enumerate().filter(|(_, c)| *c != ' ') {
-                                    text {
-                                        class: "tw-ink tw-copy",
-                                        x: "{FIGURE.copy.x0 + (col as f64 + 0.5) * FIGURE.copy.cell:.2}",
-                                        y: "{baseline:.2}",
-                                        font_size: "{FIGURE.copy.font}",
-                                        text_anchor: "middle",
-                                        "{character}"
-                                    }
-                                }
-                            }
-                        }
                         g { class: "tw-hammer", "data-on": "{m.bell}", Layer { markup: Markup(&FIGURE.hammer) } }
                         Layer { markup: Markup(&FIGURE.platen) }
                         Layer { markup: Markup(&FIGURE.sheet) }
@@ -661,18 +636,18 @@ fn App() -> Element {
                                     x: "{text.x0 - text.margin}",
                                     y: "{text.top}",
                                     width: "{text.cols as f64 * text.cell + 2.0 * text.margin}",
-                                    height: "{text.baseline - text.top + 6.0}",
+                                    height: "{text.bottom - text.top}",
                                 }
                             }
                             g { clip_path: "url(#tw-sheet-clip)",
                                 if let Some(s) = typed.as_ref() {
-                                    for line in first_line..=current_line {
+                                    for line in drawn {
                                         g {
                                             key: "{line}",
                                             class: "tw-line",
-                                            style: "transform: translate(0px, {-((current_line - line) as f64) * text.line_h:.2}px)",
+                                            style: "transform: translate(0px, {row_y(line):.2}px)",
                                             for cell in s.cells(line) {
-                                                SheetCell { cell, line_is_current: line == current_line }
+                                                SheetCell { cell }
                                             }
                                         }
                                     }
@@ -680,7 +655,7 @@ fn App() -> Element {
                                         rect {
                                             class: "tw-cursor",
                                             x: "{FIGURE.col_x(cursor) - text.cell * 0.42:.2}",
-                                            y: "{text.baseline + 2.4:.2}",
+                                            y: "{row_y(current_line) + 3.0:.2}",
                                             width: "{text.cell * 0.84:.2}",
                                             height: "1.1",
                                         }
@@ -763,19 +738,18 @@ fn Layer(markup: Markup) -> Element {
     }
 }
 
-/// One character cell on the sheet.
+/// One character cell on the sheet, drawn at baseline 0 of its line.
 #[component]
-fn SheetCell(cell: session::Cell, line_is_current: bool) -> Element {
+fn SheetCell(cell: session::Cell) -> Element {
     let x = FIGURE.col_x(cell.col);
-    let y = FIGURE.text.baseline;
+    let y = 0.0;
     let size = FIGURE.text.font;
     let copy = cell.copy.map(String::from).unwrap_or_default();
     let typed = cell.typed.map(String::from).unwrap_or_default();
     match cell.ink {
-        Ink::Copy if line_is_current => rsx! {
+        Ink::Copy => rsx! {
             text { class: "tw-ink tw-copy", x: "{x:.2}", y: "{y:.2}", font_size: "{size}", text_anchor: "middle", "{copy}" }
         },
-        Ink::Copy => rsx! {},
         Ink::Hit => rsx! {
             text { class: "tw-ink", x: "{x:.2}", y: "{y:.2}", font_size: "{size}", text_anchor: "middle", "{typed}" }
         },

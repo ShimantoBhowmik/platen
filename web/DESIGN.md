@@ -50,10 +50,10 @@ typography:
     fontFamily: "Courier Prime, Courier New, Courier, monospace"
     fontSize: "21px"
     fontWeight: 400
-  holder-copy:
+  key-label:
     fontFamily: "Courier Prime, Courier New, Courier, monospace"
-    fontSize: "17px"
-    fontWeight: 400
+    fontSize: "19px"
+    fontWeight: 700
   label:
     fontFamily: "ui-monospace, SF Mono, Menlo, Consolas, monospace"
     fontSize: "13px"
@@ -231,14 +231,14 @@ components:
 
 **Creative North Star: "The Anatomy Plate"**
 
-One typewriter, drawn as a technical figure on a framed card, is the whole interface. It is a wide typeball electric seen straight from the front: the sheet stays still across the full width of the platen and a small type element travels along it, so a whole line of eleven words stays in view at a readable size and on a level baseline. The copy is printed faint on the paper, the learner types over it, and the machine answers each key with a stepped mechanical response. Around the figure sit a hairline frame, two bottom captions, a legend under the card, and a quiet bar above it: the brand, two segmented controls for the test length and three icon tools. When the server returns the score, the same card shows the result plate: the machine's figures, a hairline speed chart, a stats row and what to practise next.
+One typewriter, drawn as a technical figure on a framed card, is the whole interface. It is a wide typeball electric seen straight from the front: the sheet stays still across the full width of the platen and a small type element travels along it, so a whole line of eleven words stays in view at a readable size and on a level baseline. Like a modern typing test, the sheet shows the copy three lines at a time in faint grey: the current line starts at the top, then holds the middle row with the finished line above it and the next line below. The keyboard is drawn at a real machine's scale against the sheet, with each key's letter on its top. The copy is printed faint on the paper, the learner types over it, and the machine answers each key with a stepped mechanical response. Around the figure sit a hairline frame, two bottom captions, a legend under the card, and a quiet bar above it: the brand, two segmented controls for the test length and three icon tools. When the server returns the score, the same card shows the result plate: the machine's figures, a hairline speed chart, a stats row and what to practise next.
 
 The world is monochrome. The bench, card and machine are four-tone grey solids with 0.6px hairline outlines, screws drawn as dots, and ruler ticks cut to the type pitch. Colour exists only as ribbon ink: a black ribbon for correct letters and the red half of a bichrome ribbon for misses, on the paper and, lifted for contrast, on the result plate. The only lit part of the drawing is the strike-point mark. Dark (charcoal bench) and light (paper-white bench) are the same drawing with each tone remapped; the theme follows the system preference and has a toggle.
 
 Density is low and fixed. The card holds a 2.2:1 stage inside whatever height the bar and legend leave, so the machine never scrolls on desktop, and the result plate fills the same stage so nothing jumps when it swaps in. Motion is mechanical, not decorative: the type element jumps one cell with no easing, a strike holds for two frames, and only the return and the line feed glide. The result chart is drawn once like a pen trace.
 
 **Key Characteristics:**
-- One anatomy figure, seen from the front, owns the screen; the paper is the test surface and holds eleven words a line.
+- One anatomy figure, seen from the front, owns the screen; the paper is the test surface: three lines of eleven words, faint until typed.
 - Four-tone monochrome solids, 0.6px hairlines, dots and ticks; no hue outside the ribbon's ink.
 - One lit part: the strike-point mark.
 - Courier Prime on the paper, for the machine's figures and for the brand; small system mono for every caption, control and axis.
@@ -262,8 +262,8 @@ A neutral grey bench and machine with paper and ribbon ink as the only content c
 - **Strong** (`strong`, `strong-light`): the brand, pressed and hovered segments and icon tools, the readout when a test is done, the focus prompt, the running countdown, every value on the result plate, the wpm line and its dots.
 - **Hairline Tones** (`line-hi`, `line-mid`, `line-lo`, `line-faint` and light pairs): outline weights of the drawing. `line-mid` also draws the plate frame, the chart's raw line, seconds ruler and hover guide, and the rings of the key discs and the tip; `line-faint` is the segmented control's ring, the chart's wpm gridlines and the rules above the stats row and the practise row; `line-lo` is the pressed segment's ring; `line-hi` is the focus outline and the selection fill.
 - **Strike Light** (`lit`, `lit-light`): the strike-point mark only. White on charcoal, black on paper.
-- **Sheet** (`sheet`, `sheet-shade`, `sheet-edge` and light pairs): the paper in the platen and on the copy holder, its shaded back and its edge stroke.
-- **Faint Copy** (`copy`, `copy-light`): the practice text still to type and the copy holder's read-ahead lines, at weight 400.
+- **Sheet** (`sheet`, `sheet-shade`, `sheet-edge` and light pairs): the paper in the platen, its shaded back and its edge stroke.
+- **Faint Copy** (`copy`, `copy-light`): the practice text still to type, on every row of the sheet, at weight 400.
 - **Ribbon Body** (`ribbon`, `ribbon-light`): the black half of the ribbon in the drawing.
 
 ### Named Rules
@@ -284,9 +284,9 @@ A neutral grey bench and machine with paper and ribbon ink as the only content c
 - **Result Figure** (700, `clamp(52px, 9cqw, 112px)` on the card's width, line-height 0.85, -0.03em, tabular): wpm and acc on the result plate. The "%" unit drops to half size in `text`.
 - **Countdown** (700, `clamp(36px, 5cqw, 64px)`, line-height 1, -0.02em, tabular; 36px on phones): seconds left, or words done with "/total" at 0.4em in `text`.
 - **Stat Value** (700, 26px, line-height 1.1, tabular; 20px on phones): the five values in the stats row.
-- **Sheet Type** (700, 21 drawing units on a 12.5-unit pitch cell, 23-unit line): letters typed right on the current line, set large through the fixed strike point.
+- **Sheet Type** (700, 21 drawing units on a 12.5-unit pitch cell, 32-unit line): letters typed right.
 - **Sheet Copy** (400, same size and pitch): letters still to type, and the copy left visible under a miss.
-- **Holder Copy** (400, 17 units, 21-unit line, pitch scaled to match): the next two lines on the copy holder behind the sheet.
+- **Key Label** (700, 19 drawing units, upper case; 9 units, lower case, for shift, back and return): the letter printed on each key top, in the top plane, so it sinks with the key.
 - **Missed Word** (700, 17px, line-height 1): the word as typed in "words left wrong".
 - **Keycap** (700, 16px, line-height 1; 13px for the wide "space" cap): the weak-key letter on its disc.
 - **Label** (400, 13px, 0.02em, lower case): the segments in the bar. Numerals are tabular.
@@ -299,7 +299,7 @@ A neutral grey bench and machine with paper and ribbon ink as the only content c
 ### Named Rules
 **The Pitch Cell Rule.** Every character on paper sits centred in a fixed pitch cell (12.5 units at 21-unit type, 80 columns, wrapped at eleven words or 76 cells, whichever comes first). The scale bar carries one tick per cell. Proportional text never appears on the sheet.
 
-**The Two Faces Rule.** Courier Prime for paper, the machine's figures and the brand: the sheet, the copy holder, the countdown, the result figures, the stat values, the key discs, the typed missed words and "platen", always at 700 off the paper. System mono for everything else: captions, controls, the readout, axis labels, notes. No third family is shown; the sans stack on the page root is a fallback that no visible text uses.
+**The Two Faces Rule.** Courier Prime for paper, the machine's figures and the brand: the sheet, the key labels, the countdown, the result figures, the stat values, the key discs, the typed missed words and "platen", always at 700 off the paper. System mono for everything else: captions, controls, the readout, axis labels, notes. No third family is shown; the sans stack on the page root is a fallback that no visible text uses.
 
 **The Figures Scale With The Card Rule.** The countdown and the result figures size in container units of the card (`cqw`), not the window, so they keep their proportion to the drawing.
 
@@ -370,11 +370,10 @@ Plotted from the server's per-second timeline; the geometry is computed in Rust 
 
 ### Typewriter Figure (signature)
 Generated by the figure build into static SVG layers; the app moves only named parts.
-- **Machine:** a wide typeball electric on a bench plate, seen from the front. The body spans the platen; the keyboard sits in a recessed well at its centre, with tab keys at the left, a power rocker at the right and grilles on the apron either side of the nameplate.
-- **Sheet:** fixed in the platen, 80 cells wide. The test text, with up to four printed lines above the print line.
+- **Machine:** a wide typeball electric on a bench plate, seen from the front. The body spans the platen. The keyboard, at a real machine's scale, sits in a recessed well at its centre: four staggered rows of round 25-unit keys on a 68-unit pitch, rising toward the back, with shift, back and return keys and a wide space bar. Tab keys sit at the left, a power rocker at the right, and grilles on the apron either side of the nameplate.
+- **Sheet:** fixed in the platen, 80 cells wide, showing three rows of copy above the paper bail. The current line starts on the top row and then holds the middle row; the sheet feeds one row as each line after the first is finished. One line past each edge is drawn and clipped, so lines glide in and out.
 - **Type element:** a sphere on a carrier that rides two rails between the platen and the keyboard, with the ribbon cartridge, the ribbon guide, the card holder and the lit strike mark. It travels along x to the current column.
 - **Ink states:** right in `ink` 700; wrong as faint copy under a red letter; extra as a red letter; skipped as faint copy with a red underscore.
-- **Copy holder:** a card on three posts behind the sheet carrying the next two lines.
 - **Motion:** the type element steps one cell per key with no transition; a key sinks for 45ms; the element moves into the platen and the ribbon guide lifts for two frames (34ms); the bell hammer moves over 70ms when the line comes within 6 cells of the margin; the line feed glides 260ms on the kit ease; the return glides 380ms (`cubic-bezier(0.2, 0.8, 0.2, 1)`). Reduced motion removes the transitions and holds the machine still.
 - **Cursor:** the current cell is marked in `ink` at 40% opacity.
 

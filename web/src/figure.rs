@@ -36,23 +36,14 @@ pub struct TextLayout {
     pub line_h: f64,
     /// Font size of the type.
     pub font: f64,
-    /// Baseline of the line at the print point.
+    /// Lines of copy shown on the sheet at once.
+    pub rows: usize,
+    /// Baseline of the top row.
     pub baseline: f64,
-    /// Top edge of the sheet.
+    /// Top edge of the area text shows in.
     pub top: f64,
-}
-
-/// Where the upcoming copy sits on the copy holder card, in the card's plane coordinates.
-#[derive(Debug, Deserialize)]
-pub struct CopyLayout {
-    /// Left edge of the first character.
-    pub x0: f64,
-    /// Width of one character cell.
-    pub cell: f64,
-    /// Font size.
-    pub font: f64,
-    /// Baselines of the next line and the one after it.
-    pub baselines: [f64; 2],
+    /// Bottom edge of the area text shows in.
+    pub bottom: f64,
 }
 
 /// The precomputed figure.
@@ -64,7 +55,7 @@ pub struct Figure {
     pub height: f64,
     /// Accessible description of the drawing.
     pub label: String,
-    /// Bench, body, rear housing and copy holder.
+    /// Bench, body and rear housing.
     pub back: String,
     /// The bell hammer, which swings at the end of a line.
     pub hammer: String,
@@ -84,7 +75,7 @@ pub struct Figure {
     pub mark: String,
     /// The type element on its post, which tilts into the platen on each strike.
     pub ball: String,
-    /// Keys, already in painter's order.
+    /// Keys with their legends, already in painter's order.
     pub keys: Vec<Key>,
     /// The space bar.
     pub space: String,
@@ -102,12 +93,8 @@ pub struct Figure {
     pub paper_matrix: String,
     /// Text layout on the sheet.
     pub text: TextLayout,
-    /// SVG transform onto the copy holder card's plane.
-    pub copy_matrix: String,
-    /// Text layout on the copy holder card.
-    pub copy: CopyLayout,
-    /// The print point with the carrier at x = 0, as a fraction of the viewBox. Phones crop
-    /// the drawing around it as the carrier travels.
+    /// The type element's x and the middle row's height with the carrier at x = 0, as a
+    /// fraction of the viewBox. Phones crop the drawing around it as the carrier travels.
     pub strike_at: [f64; 2],
 }
 
@@ -118,7 +105,7 @@ impl Figure {
         self.text.x0 + (col as f64 + 0.5) * self.text.cell
     }
 
-    /// The print point over column `col`, as a fraction of the viewBox.
+    /// Where phones centre their crop for column `col`, as a fraction of the viewBox.
     pub fn strike_point(&self, col: usize) -> [f64; 2] {
         let [sx, sy] = self.carrier_step;
         let travel = self.col_x(col);

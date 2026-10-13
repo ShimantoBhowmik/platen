@@ -40,12 +40,21 @@ async function openTest(browser, mode, amount) {
     await cdp.send("Performance.enable");
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: Number(options.throttle) });
     await page.goto(options.url);
-    await page.locator("[data-corner=readout]").filter({ hasText: "ready" }).waitFor();
-    const issued = page.waitForResponse((response) => response.url().endsWith("/api/tests"));
+    const ready = page.locator("[data-corner=readout]").filter({ hasText: "ready" });
+    const nextTest = () => page.waitForResponse((response) => response.url().endsWith("/api/tests"));
+    await ready.waitFor();
+    const kind = page.getByRole("group", { name: "Test kind" }).getByRole("button", { name: mode });
+    if ((await kind.getAttribute("aria-pressed")) !== "true") {
+        const switched = nextTest();
+        await kind.click();
+        await switched;
+        await ready.waitFor();
+    }
+    const issued = nextTest();
     const label = mode === "time" ? `${amount}s` : `${amount}`;
     await page.getByRole("button", { name: label, exact: true }).click();
     const { words } = await (await issued).json();
-    await page.locator("[data-corner=readout]").filter({ hasText: "ready" }).waitFor();
+    await ready.waitFor();
     await page.locator("#tw-stage").focus();
     return { page, cdp, words };
 }

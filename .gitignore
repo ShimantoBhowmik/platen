@@ -29,15 +29,17 @@ CLAUDE.md
 # Local secrets
 .env
 
+# Word list generator virtualenv (scripts/README.md)
+.venv-words/
+
 # Frontend build output and generated previews
-web/target
 web/dist
-web/figure/preview*.html
+scripts/figure/preview*.html
 
 # Impeccable review captures
-.impeccable/review/
+web/.impeccable/review/
 
-# Agent end-to-end tool: dependencies, builds and run output
-agent-testing/node_modules
-agent-testing/.build
-agent-testing/results
+# End-to-end checks: dependencies, builds and run output
+e2e/node_modules
+e2e/.build
+e2e/results

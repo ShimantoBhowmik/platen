@@ -9,17 +9,14 @@ COPY web/ .
 RUN dx bundle --platform web --release --out-dir /out
 
 FROM rust:1.89-bookworm AS server
-WORKDIR /src
-COPY Cargo.toml Cargo.lock ./
-COPY src/ src/
-COPY migrations/ migrations/
-COPY words/ words/
+WORKDIR /src/server
+COPY server/ .
 RUN cargo build --release --locked
 
 # Distroless has no shell or package manager. sqlx bundles its TLS root certificates, so the
 # image needs nothing beyond glibc.
 FROM gcr.io/distroless/cc-debian12:nonroot
-COPY --from=server /src/target/release/platen /app/platen
+COPY --from=server /src/server/target/release/platen /app/platen
 COPY --from=web /out/public /app/public
 ENV STATIC_DIR=/app/public \
     BIND_ADDR=0.0.0.0:3000 \

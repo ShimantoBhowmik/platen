@@ -1,9 +1,9 @@
 // Builds the typewriter figure for the web app.
 //
-// Run with `node web/figure/build.mjs`. It writes `web/assets/typewriter.json`: static SVG
+// Run with `node scripts/figure/build.mjs`. It writes `web/assets/typewriter.json`: static SVG
 // layers drawn with the vendored anatomy kit, plus the numbers the Rust app needs to move the
 // carriage, sink keys, strike typebars and set text on the sheet. Add `--preview` to also write
-// `web/figure/preview.html`, a standalone page for visual and line-end checks.
+// `scripts/figure/preview.html`, a standalone page for visual and line-end checks.
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,7 +11,8 @@ import * as k from "./kit/iso-kit.mjs";
 import * as G from "./kit/lathe.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = join(HERE, "..", "assets", "typewriter.json");
+const ASSETS = join(HERE, "..", "..", "web", "assets");
+const OUT = join(ASSETS, "typewriter.json");
 
 // Type on the sheet: pica-like pitch, one cell per character.
 const CELL = 12.5;
@@ -484,7 +485,7 @@ const figure = {
 };
 
 writeFileSync(OUT, JSON.stringify(figure));
-writeFileSync(join(HERE, "..", "assets", "iso.css"), k.ISO_CSS);
+writeFileSync(join(ASSETS, "iso.css"), k.ISO_CSS);
 console.log("wrote", OUT, `${(JSON.stringify(figure).length / 1024).toFixed(0)} KiB`);
 
 if (process.argv.includes("--preview")) {
@@ -511,7 +512,7 @@ if (process.argv.includes("--preview")) {
       figure.space,
     ],
   });
-  const css = `<style>${readFileSync(join(HERE, "..", "assets", "typewriter.css"), "utf8")}</style>`;
+  const css = `<style>${readFileSync(join(ASSETS, "typewriter.css"), "utf8")}</style>`;
   const body = css + k.plateHtml({ fig: "Fig 1", title: "platen", hint: "Type to begin", readout: "0:30 · 0 wpm", keys: [], caption: "", body: svg });
   const name = theme === "light" ? "preview-light.html" : "preview.html";
   writeFileSync(join(HERE, name), k.pageHtml({ title: "platen preview", theme, body, script: "", width: 1100 }));

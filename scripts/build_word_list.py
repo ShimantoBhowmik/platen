@@ -1,11 +1,12 @@
-"""Builds words/english.txt: the 1,000 most common everyday English words.
+"""Builds server/words/english.txt: the 1,000 most common everyday English words.
 
 Source: wordfreq 3.1.1 (https://github.com/rspeer/wordfreq), whose word frequency data is
-licensed CC BY-SA 4.0. The generated list is therefore also CC BY-SA 4.0; see README.md.
+licensed CC BY-SA 4.0. The generated list is therefore also CC BY-SA 4.0; see
+server/words/README.md.
 
-Run from the repository root, in a virtualenv with `pip install wordfreq==3.1.1`:
+Run in a virtualenv with `pip install wordfreq==3.1.1`:
 
-    python words/build_english.py
+    python scripts/build_word_list.py
 
 The list keeps wordfreq's frequency order and drops words that do not belong in a typing
 drill: anything that is not plain lowercase letters, single letters other than "a", and the
@@ -54,6 +55,6 @@ def build() -> list[str]:
 
 
 if __name__ == "__main__":
-    out = Path(__file__).with_name("english.txt")
+    out = Path(__file__).parent.parent / "server" / "words" / "english.txt"
     out.write_text("\n".join(build()) + "\n")
     print(f"wrote {SIZE} words to {out}")

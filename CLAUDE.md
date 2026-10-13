@@ -213,13 +213,13 @@ pub fn calculate_total(items: &[Item], tax_rate: f64) -> Result<f64, Calculation
 
 ## End-to-end testing before CI
 
-- Before you push a branch or open or update a PR, test the whole platform end to end yourself with the agent tool in `agent-testing/`. Do this before CI runs, not instead of it.
-  - Run `cd agent-testing && node run.mjs`. Use `--skip-build` only if no Rust code changed since the last build.
+- Before you push a branch or open or update a PR, test the whole platform end to end yourself with the agent tool in `e2e/`. Do this before CI runs, not instead of it.
+  - Run `cd e2e && node run.mjs`. Use `--skip-build` only if no Rust code changed since the last build.
   - The run must end with `== PASSED`. Do not push on `== FAILED`.
-- After a passing run, open the screenshots in `agent-testing/results/screens/` and look at them. The checks cannot judge appearance. Fix anything that looks off.
+- After a passing run, open the screenshots in `e2e/results/screens/` and look at them. The checks cannot judge appearance. Fix anything that looks off.
 - If a check fails, find the cause and fix the product or the check. Never retry until it passes, and never skip or delete a check to get a pass.
-- When you add or change a feature that a learner or API client can see, add or update its checks in `agent-testing/tests/` in the same branch.
-- In the PR's **How to test** section, state the result of the run (for example, "agent-testing: 17 passed").
+- When you add or change a feature that a learner or API client can see, add or update its checks in `e2e/tests/` in the same branch.
+- In the PR's **How to test** section, state the result of the run (for example, "e2e: 17 passed").
 ---
 
 **Remember:** Prioritize clarity and maintainability over cleverness.

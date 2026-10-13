@@ -20,8 +20,6 @@ use crate::report::ResultPlate;
 use crate::session::{Effect, Ink, Session, Stroke};
 use crate::sound::Cue;
 
-/// Most words on one line of the sheet.
-const WORDS_PER_LINE: usize = 11;
 /// Cells before the right end of a line where the margin bell rings.
 const BELL_AT: usize = 6;
 /// How long the type element stays against the platen: two frames.
@@ -218,7 +216,6 @@ fn App() -> Element {
                     let finishes = spec.mode == ModeKind::Words;
                     session.set(Some(Session::new(
                         fresh.words.clone(),
-                        WORDS_PER_LINE,
                         FIGURE.text.wrap,
                         FIGURE.text.cols - FIGURE.text.wrap,
                         finishes,

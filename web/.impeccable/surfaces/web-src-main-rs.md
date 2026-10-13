@@ -67,3 +67,7 @@ the chosen kind, and icon buttons for sound, theme and a new sheet.
 Later, by user decision (2026-10-12): the sheet shows the copy three lines at a time in faint
 grey, the way a modern typing test does, and the copy holder is gone. The keyboard is drawn at
 a real machine's scale against the sheet, with letters printed on the key tops.
+
+Later, by user decision (2026-10-13): a line no longer stops at eleven words. Copy wraps on
+width alone, as many words as fit in the wrap cells, so each line reaches close to the margin
+the way a typist returns the carriage at the bell.

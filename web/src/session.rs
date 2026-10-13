@@ -74,33 +74,23 @@ pub struct Session {
 }
 
 impl Session {
-    /// Lays out `words` on lines of at most `words_per_line` words and `cols` cells.
+    /// Lays out `words` on lines of at most `cols` cells, as many words as fit.
     ///
     /// # Arguments
     ///
     /// * `words` - The test text, from the server
-    /// * `words_per_line` - Most words on one line
     /// * `cols` - Cells the copy is wrapped at
     /// * `slack` - Cells left on the paper after `cols` for extra letters; past them the
     ///   margin locks and further extras overstrike the last cell
     /// * `finishes_on_last_word` - True for a word test, false for a time test
-    pub fn new(
-        words: Vec<String>,
-        words_per_line: usize,
-        cols: usize,
-        slack: usize,
-        finishes_on_last_word: bool,
-    ) -> Self {
+    pub fn new(words: Vec<String>, cols: usize, slack: usize, finishes_on_last_word: bool) -> Self {
         let mut line_starts = vec![0];
-        let mut line_start = 0;
         let mut width = 0;
         for (index, word) in words.iter().enumerate() {
             let len = word.chars().count();
             let needed = if width == 0 { len } else { width + 1 + len };
-            let line_full = index - line_start == words_per_line;
-            if width > 0 && (needed > cols || line_full) {
+            if width > 0 && needed > cols {
                 line_starts.push(index);
-                line_start = index;
                 width = len;
             } else {
                 width = needed;
@@ -316,7 +306,6 @@ mod tests {
     fn session(words: &[&str], finishes: bool) -> Session {
         Session::new(
             words.iter().map(|w| (*w).to_owned()).collect(),
-            11,
             12,
             3,
             finishes,
@@ -345,10 +334,10 @@ mod tests {
     }
 
     #[test]
-    fn wraps_after_the_word_limit_even_with_cells_to_spare() {
-        let words: Vec<String> = ["a"; 7].iter().map(|w| (*w).to_owned()).collect();
-        let s = Session::new(words, 3, 80, 4, true);
-        assert_eq!(s.line_starts, [0, 3, 6]);
+    fn fills_a_line_with_as_many_short_words_as_fit() {
+        let words: Vec<String> = ["a"; 13].iter().map(|w| (*w).to_owned()).collect();
+        let s = Session::new(words, 24, 4, true);
+        assert_eq!(s.line_starts, [0, 12]);
     }
 
     #[test]

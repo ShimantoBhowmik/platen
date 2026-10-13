@@ -50,14 +50,14 @@ const WRAP = JSON.parse(
 ).text.wrap;
 
 /**
- * The sheet's lines: at most eleven words and at most `WRAP` cells each, the same rule the
- * app lays the copy out with.
+ * The sheet's lines: as many words as fit in `WRAP` cells, the same rule the app lays the
+ * copy out with.
  */
 function sheetLines(words) {
     const lines = [[]];
     for (const word of words) {
         const line = lines[lines.length - 1];
-        if (line.length === 11 || [...line, word].join(" ").length > WRAP) lines.push([word]);
+        if (line.length > 0 && [...line, word].join(" ").length > WRAP) lines.push([word]);
         else line.push(word);
     }
     return lines.map((line) => line.join(" "));

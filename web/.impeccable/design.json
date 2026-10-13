@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-12T13:00:00.000Z",
+  "generatedAt": "2026-10-13T04:28:17.000Z",
   "title": "Design System: platen",
   "extensions": {
     "colorMeta": {
@@ -602,7 +602,7 @@
     "typographyMeta": {
       "sheet-type": {
         "displayName": "Sheet Type",
-        "purpose": "Letters typed right; drawing units on a 12.5-unit pitch cell and a 32-unit line, 80 cells across the fixed sheet."
+        "purpose": "Letters typed right; drawing units on a 16.7-unit pitch cell and a 43-unit line, 60 cells across the fixed sheet."
       },
       "sheet-copy": {
         "displayName": "Sheet Copy",
@@ -798,7 +798,7 @@
       "refersTo": "sheet-type",
       "description": "The paper: typed-right ink, a miss over faint copy, and copy still to type, on a fixed pitch.",
       "html": "<div class=\"ds-sheet\"><span class=\"ds-hit\">run play </span><span class=\"ds-cell\"><span class=\"ds-copy\">w</span><span class=\"ds-miss\">x</span></span><span class=\"ds-hit\">ould s</span><span class=\"ds-copy\">ee</span></div>",
-      "css": ".ds-sheet{padding:20px 24px;background:#e8e6e0;box-shadow:0 0 0 1px #8e8b84;font:21px \"Courier Prime\",\"Courier New\",Courier,monospace;white-space:pre}.ds-hit{color:#161618;font-weight:700}.ds-copy{color:#5f5c56;font-weight:400}.ds-miss{color:#b02621;font-weight:700;position:absolute;left:0}.ds-cell{position:relative;display:inline-block}"
+      "css": ".ds-sheet{padding:20px 24px;background:#e8e6e0;box-shadow:0 0 0 1px #8e8b84;font:28px \"Courier Prime\",\"Courier New\",Courier,monospace;white-space:pre}.ds-hit{color:#161618;font-weight:700}.ds-copy{color:#5f5c56;font-weight:400}.ds-miss{color:#b02621;font-weight:700;position:absolute;left:0}.ds-cell{position:relative;display:inline-block}"
     },
     {
       "name": "Type Element",
@@ -902,7 +902,7 @@
       },
       {
         "name": "The Pitch Cell Rule",
-        "body": "Every character on paper sits centred in a fixed pitch cell (12.5 units at 21-unit type, 80 columns, wrapped at eleven words or 76 cells, whichever comes first). The scale bar carries one tick per cell. Proportional text never appears on the sheet.",
+        "body": "Every character on paper sits centred in a fixed pitch cell (16.7 units at 28-unit type, 60 columns, wrapped at eleven words or 56 cells, whichever comes first). The scale bar carries one tick per cell. Proportional text never appears on the sheet.",
         "section": "typography"
       },
       {

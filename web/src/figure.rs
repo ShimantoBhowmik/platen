@@ -99,16 +99,18 @@ pub struct Figure {
 }
 
 impl Figure {
-    /// Centre of column `col` on the sheet, in plane coordinates. It is also how far the
-    /// carrier travels along x to print in that column.
-    pub fn col_x(&self, col: usize) -> f64 {
-        self.text.x0 + (col as f64 + 0.5) * self.text.cell
+    /// Centre of the cell `at` cells along a line of the sheet, in plane coordinates. It is
+    /// also how far the carrier travels along x to print there. `at` is fractional on a
+    /// justified line, where word gaps are stretched.
+    pub fn col_x(&self, at: f64) -> f64 {
+        self.text.x0 + (at + 0.5) * self.text.cell
     }
 
-    /// Where phones centre their crop for column `col`, as a fraction of the viewBox.
-    pub fn strike_point(&self, col: usize) -> [f64; 2] {
+    /// Where phones centre their crop for the cell `at` cells along a line, as a fraction of
+    /// the viewBox.
+    pub fn strike_point(&self, at: f64) -> [f64; 2] {
         let [sx, sy] = self.carrier_step;
-        let travel = self.col_x(col);
+        let travel = self.col_x(at);
         [
             self.strike_at[0] + sx * travel / self.width,
             self.strike_at[1] + sy * travel / self.height,
@@ -146,11 +148,11 @@ mod tests {
 
     #[test]
     fn strike_point_steps_one_cell_per_column_and_stays_on_the_drawing() {
-        let first = FIGURE.strike_point(0);
-        let second = FIGURE.strike_point(1);
+        let first = FIGURE.strike_point(0.0);
+        let second = FIGURE.strike_point(1.0);
         let step = (second[0] - first[0]) * FIGURE.width;
         assert!((step - FIGURE.carrier_step[0] * FIGURE.text.cell).abs() < 1e-9);
-        let last = FIGURE.strike_point(FIGURE.text.cols - 1);
+        let last = FIGURE.strike_point((FIGURE.text.cols - 1) as f64);
         for point in [first, last] {
             assert!((0.0..=1.0).contains(&point[0]) && (0.0..=1.0).contains(&point[1]));
         }

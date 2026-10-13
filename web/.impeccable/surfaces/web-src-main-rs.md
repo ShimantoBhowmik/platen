@@ -71,3 +71,9 @@ a real machine's scale against the sheet, with letters printed on the key tops.
 Later, by user decision (2026-10-13): a line no longer stops at eleven words. Copy wraps on
 width alone, as many words as fit in the wrap cells, so each line reaches close to the margin
 the way a typist returns the carriage at the bell.
+
+Later, by user decision (2026-10-13): lines are justified, like Justify in a word processor.
+Every line but the last of the copy ends flush at the wrap width, its spare cells spread evenly
+over its word gaps, so the gaps are a fraction of a cell wider while letters keep the pitch.
+The last line stays left-aligned. A space carries the type element across the stretched gap,
+and the margin bell rings as it nears the right end of every full line.

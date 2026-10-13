@@ -71,6 +71,24 @@ cluster. `PG_BIN` names the Postgres binary directory when it is not on `PATH`.
 - `report.json`: the Playwright results.
 - `artifacts/`: a trace and screenshot for each failed check. Open one with `npx playwright show-trace <path>/trace.zip`.
 
+## Measuring frontend performance
+
+`perf.mjs` measures the frontend's main-thread cost in Chrome against a running stack. It
+reports busy time per second while a time test runs with no keys, and busy time per key while
+typing at a steady pace, split into script, style and layout. Start the stack with `--keep`,
+then pass the URL it prints:
+
+```bash
+node run.mjs --keep
+```
+
+```bash
+node perf.mjs --url http://127.0.0.1:<port> --runs 5
+```
+
+`--throttle 4` slows the CPU four times, close to a mid-range phone. Compare numbers only
+from the same machine and the same throttle.
+
 ## Adding checks
 
 Add a check to `tests/` when you add or change something a learner or API client can see.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-13T05:00:49.000Z",
+  "generatedAt": "2026-10-13T05:24:24.000Z",
   "title": "Design System: platen",
   "extensions": {
     "colorMeta": {
@@ -622,7 +622,7 @@
       },
       "caption": {
         "displayName": "Caption",
-        "purpose": "The plate's bottom-left hint, the focus prompt, and the labels over each value and list on the result plate; uppercase."
+        "purpose": "The plate's bottom-left hint, the focus prompt, the Caps Lock notice, and the labels over each value and list on the result plate; uppercase."
       },
       "readout": {
         "displayName": "Readout",
@@ -683,7 +683,7 @@
       {
         "name": "lift",
         "value": "inset 0 1px 0 0 #ffffff0a,inset 0 0 0 1px #ffffff06,0 0 0 1px #00000026,0 1px 1px -.5px #00000014,0 3px 3px -1.5px #00000014,0 6px 6px -3px #00000014,0 12px 12px -6px #00000014",
-        "purpose": "Only the focus prompt over the dimmed figure (dark theme value)."
+        "purpose": "Only the two transient chips: the focus prompt over the dimmed figure and the Caps Lock notice (dark theme value)."
       },
       {
         "name": "figure-halo",
@@ -743,9 +743,14 @@
         "purpose": "Countdown colour from text to strong when typing starts."
       },
       {
+        "name": "caps-fade",
+        "value": "160ms cubic-bezier(.32,.72,0,1)",
+        "purpose": "The Caps Lock notice fades in when Caps Lock turns on."
+      },
+      {
         "name": "reduced-motion",
         "value": "transition: none; animation: none",
-        "purpose": "Machine holds still; segments, icons and countdown change instantly; the result plate and its chart appear finished."
+        "purpose": "Machine holds still; segments, icons and countdown change instantly; the Caps Lock notice appears at once; the result plate and its chart appear finished."
       }
     ],
     "breakpoints": [
@@ -788,7 +793,7 @@
       "name": "Plate",
       "kind": "card",
       "refersTo": "plate",
-      "description": "Square card with a hairline frame; only the hint (bottom left) and the readout status (bottom right) sit in its corners.",
+      "description": "Square card with a hairline frame; only the hint (bottom left) and the readout status (bottom right) sit in its corners as captions.",
       "html": "<div class=\"ds-plate\"><button class=\"ds-k ds-hint\">Type to begin · Tab + Enter restarts</button><span class=\"ds-k ds-read\">typing</span></div>",
       "css": ".ds-plate{position:relative;height:220px;background:#131313;box-shadow:0 0 0 1px #6a6a6a;border-radius:0;font-family:ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;color:#a3a3a3}.ds-k{position:absolute;bottom:18px;line-height:1;white-space:nowrap}.ds-hint{left:20px;padding:0;border:0;background:none;color:inherit;font:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:color 160ms cubic-bezier(.32,.72,0,1)}.ds-hint:hover,.ds-hint:focus-visible{color:#e6e6e6}.ds-hint:focus-visible{outline:1px solid #d4d4d4;outline-offset:4px}.ds-read{right:20px;font-size:13px;letter-spacing:.04em;font-variant-numeric:tabular-nums}"
     },
@@ -820,7 +825,7 @@
       "name": "Focus Prompt",
       "kind": "custom",
       "refersTo": "focus-prompt",
-      "description": "Shown over the dimmed figure when the card does not hold focus; the only lifted surface.",
+      "description": "Shown over the dimmed figure when the card does not hold focus; one of the two lifted chips.",
       "html": "<div class=\"ds-stage\"><div class=\"ds-dim\"></div><span class=\"ds-prompt\">Click the machine to type</span></div>",
       "css": ".ds-stage{position:relative;height:140px;background:#131313}.ds-dim{position:absolute;inset:0;opacity:.55}.ds-prompt{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);padding:8px 14px;background:#131313;box-shadow:0 0 0 1px #6a6a6a,inset 0 1px 0 0 #ffffff0a,0 1px 1px -.5px #00000014,0 3px 3px -1.5px #00000014,0 6px 6px -3px #00000014,0 12px 12px -6px #00000014;color:#e6e6e6;font:12px/1 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}"
     },
@@ -831,6 +836,14 @@
       "description": "Seconds left, or words done over the total, large in the bench corner; strong while typing.",
       "html": "<div class=\"ds-bench\"><span class=\"ds-count\">42<span class=\"ds-of\">/50</span></span></div>",
       "css": ".ds-bench{padding:24px;background:#131313}.ds-count{font:700 72px/1 \"Courier Prime\",\"Courier New\",Courier,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#e6e6e6}.ds-of{font-size:.4em;letter-spacing:0;color:#a3a3a3}"
+    },
+    {
+      "name": "Caps Lock Notice",
+      "kind": "chip",
+      "refersTo": "caps-lock-notice",
+      "description": "The focus prompt's chip at the card's top right while Caps Lock is on, centred on the countdown's figures; hidden when the card loses focus.",
+      "html": "<div class=\"ds-band\"><span class=\"ds-count\">30</span><span class=\"ds-caps\">Caps Lock</span></div>",
+      "css": ".ds-band{position:relative;height:108px;background:#131313}.ds-count{position:absolute;left:22px;top:22px;font:700 64px/1 \"Courier Prime\",\"Courier New\",Courier,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#e6e6e6}.ds-caps{position:absolute;right:22px;top:50px;transform:translateY(-50%);padding:8px 14px;background:#131313;box-shadow:0 0 0 1px #6a6a6a,inset 0 1px 0 0 #ffffff0a,0 1px 1px -.5px #00000014,0 3px 3px -1.5px #00000014,0 6px 6px -3px #00000014,0 12px 12px -6px #00000014;color:#e6e6e6;font:12px/1 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;animation:ds-fade 160ms cubic-bezier(.32,.72,0,1) both}@keyframes ds-fade{from{opacity:0}}"
     },
     {
       "name": "Result Figures",
@@ -917,7 +930,7 @@
       },
       {
         "name": "The Drawn Depth Rule",
-        "body": "Volume belongs to the figure. Interface surfaces stay flat and outlined; the lift stack is reserved for the one transient prompt over the figure.",
+        "body": "Volume belongs to the figure. Interface surfaces stay flat and outlined; the lift stack is reserved for the two transient chips, the focus prompt and the Caps Lock notice.",
         "section": "elevation"
       }
     ],
@@ -926,7 +939,7 @@
       "Do set the test length as segmented controls and the tools as icon buttons in the bar; show binary tools with `aria-pressed`.",
       "Do declare every new colour as a dark and light pair on the same token name.",
       "Do keep machine motion stepped: one cell per key, two-frame strikes, glides only for the return and the line feed. Result motion is one pen trace and one fade. Nothing moves under reduced motion.",
-      "Do keep the plate's captions to the two bottom corners: hint and status readout. No figure numbers or titles.",
+      "Do keep the plate's captions to the two bottom corners: hint and status readout. No figure numbers or titles. The top corners hold only the countdown and, while Caps Lock is on, the transient Caps Lock notice at top right.",
       "Do keep chart marks off the wpm gridlines by choosing the error axis top, not by nudging marks."
     ],
     "donts": [

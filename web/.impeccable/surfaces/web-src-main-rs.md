@@ -71,3 +71,7 @@ a real machine's scale against the sheet, with letters printed on the key tops.
 Later, by user decision (2026-10-13): a line no longer stops at eleven words. Copy wraps on
 width alone, as many words as fit in the wrap cells, so each line reaches close to the margin
 the way a typist returns the carriage at the bell.
+
+Later, by user decision (2026-10-13): a "Caps Lock" notice, like a modern typing test's, sits
+at the card's top right while Caps Lock is on, in the focus prompt's chip and centred on the
+countdown's figures. It is the one transient exception to the empty top-right corner.

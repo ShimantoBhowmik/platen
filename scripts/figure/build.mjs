@@ -19,8 +19,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ASSETS = join(HERE, "..", "..", "web", "assets");
 const OUT = join(ASSETS, "typewriter.json");
 
-// Type on the sheet: one cell per character. 60 cells across the same paper width make an
-// eleven-word line of common words fill most of the sheet.
+// Type on the sheet: one cell per character, 60 cells across the paper. Lines wrap at `WRAP`
+// cells, as many words as fit, so each line of common words fills most of the sheet.
 const CELL = 1000 / 60;
 const COLS = 60;
 const LINE_H = 43;

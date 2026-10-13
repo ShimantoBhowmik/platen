@@ -223,6 +223,11 @@ components:
     textColor: "{colors.strong}"
     typography: "{typography.caption}"
     padding: "8px 14px"
+  caps-lock-notice:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.strong}"
+    typography: "{typography.caption}"
+    padding: "8px 14px"
 ---
 
 # Design System: platen
@@ -256,10 +261,10 @@ A neutral grey bench and machine with paper and ribbon ink as the only content c
 
 ### Neutral
 - **Charcoal Bench / Paper Bench** (`bench`, `bench-light`): the page behind the card, also painted on `html` and `body`.
-- **Plate Card** (`card`, `card-light`): the framed card, the focus prompt and the chart's hover tip. Slightly lifted from the bench by tone, not by shadow.
+- **Plate Card** (`card`, `card-light`): the framed card, the focus prompt, the Caps Lock notice and the chart's hover tip. Slightly lifted from the bench by tone, not by shadow.
 - **Lit Face and Top** (`face`, `top`, `face-light`): top faces of the machine's solids, the pressed segment fill, the icon hover fill and the weak-key disc face. `shade-0` through `shade-3` are the side faces.
 - **Caption Grey** (`text`, `text-light`): unpressed segments and icon tools, plate captions, legend text, the countdown before typing starts, chart axis labels, result labels and the small notes under figures.
-- **Strong** (`strong`, `strong-light`): the brand, pressed and hovered segments and icon tools, the readout when a test is done, the focus prompt, the running countdown, every value on the result plate, the wpm line and its dots.
+- **Strong** (`strong`, `strong-light`): the brand, pressed and hovered segments and icon tools, the readout when a test is done, the focus prompt, the Caps Lock notice, the running countdown, every value on the result plate, the wpm line and its dots.
 - **Hairline Tones** (`line-hi`, `line-mid`, `line-lo`, `line-faint` and light pairs): outline weights of the drawing. `line-mid` also draws the plate frame, the chart's raw line, seconds ruler and hover guide, and the rings of the key discs and the tip; `line-faint` is the segmented control's ring, the chart's wpm gridlines and the rules above the stats row and the practise row; `line-lo` is the pressed segment's ring; `line-hi` is the focus outline and the selection fill.
 - **Strike Light** (`lit`, `lit-light`): the strike-point mark only. White on charcoal, black on paper.
 - **Sheet** (`sheet`, `sheet-shade`, `sheet-edge` and light pairs): the paper in the platen, its shaded back and its edge stroke.
@@ -291,7 +296,7 @@ A neutral grey bench and machine with paper and ribbon ink as the only content c
 - **Keycap** (700, 16px, line-height 1; 13px for the wide "space" cap): the weak-key letter on its disc.
 - **Label** (400, 13px, 0.02em, lower case): the segments in the bar. Numerals are tabular.
 - **Brand** (Courier Prime 700, 22px, -0.01em, lower case): "platen" at the left of the bar. It is the only brand mark on the page apart from the nameplate drawn on the machine.
-- **Caption** (400, 12px, line-height 1, 0.1em, uppercase): the plate's bottom-left hint, the focus prompt, and the labels over each value and list on the result plate.
+- **Caption** (400, 12px, line-height 1, 0.1em, uppercase): the plate's bottom-left hint, the focus prompt, the Caps Lock notice, and the labels over each value and list on the result plate.
 - **Readout** (400, 13px): the plate's status at bottom right, in lower case: `feeding paper`, `ready`, `typing`, `checking the sheet`, `verified by the server`, or the failure message.
 - **Legend** (400, 12px, 0.04em, sentence case): ink keys under the card.
 - **Note** (400, 11px, line-height 1.3, tabular): chart axis labels and units, the hover tip, the sub-lines under stat values, key-disc counts, the expected word under a missed word, and "+N more".
@@ -322,10 +327,10 @@ Depth is drawn, not cast. The machine reads as solid through its projection and 
 ### Shadow Vocabulary
 - **Plate frame** (`box-shadow: 0 0 0 1px var(--anatomy-mid)`): the card's hairline frame; the same ring outlines the key discs and the chart's hover tip.
 - **Control ring** (`box-shadow: 0 0 0 1px` in `line-faint` around a segmented control, `line-lo` around its pressed segment): control outline.
-- **Lift** (the kit's `--anatomy-lift`, a stack of 1px inset and soft layered shadows): only on the "Click the machine to type" prompt that floats over the dimmed figure when the card loses focus.
+- **Lift** (the kit's `--anatomy-lift`, a stack of 1px inset and soft layered shadows): only on the two transient chips: the "Click the machine to type" prompt that floats over the dimmed figure when the card loses focus, and the Caps Lock notice.
 
 ### Named Rules
-**The Drawn Depth Rule.** Volume belongs to the figure. Interface surfaces stay flat and outlined; the lift stack is reserved for the one transient prompt over the figure.
+**The Drawn Depth Rule.** Volume belongs to the figure. Interface surfaces stay flat and outlined; the lift stack is reserved for the two transient chips, the focus prompt and the Caps Lock notice.
 
 ## Shapes
 
@@ -342,11 +347,14 @@ Two kinds of control live in the bar, both quiet until used.
 ### Plate (Card)
 - **Corner Style:** square.
 - **Background:** `card`, with a 1px `line-mid` frame.
-- **Captions:** the hint bottom left ("Type to begin · Tab + Enter restarts", then "Tab + Enter restarts"), a button that gives a fresh sheet; the readout bottom right. The top corners stay empty: the bar already names the test. The readout is a status, not live statistics: it turns `strong` at `verified by the server`.
+- **Captions:** the hint bottom left ("Type to begin · Tab + Enter restarts", then "Tab + Enter restarts"), a button that gives a fresh sheet; the readout bottom right. The top corners hold no caption: the bar already names the test. Only the countdown at top left and the transient Caps Lock notice at top right sit there. The readout is a status, not live statistics: it turns `strong` at `verified by the server`.
 - **Unfocused state:** the figure dims to 55% opacity over 240ms and the focus prompt appears at its centre. The result plate does not dim or show the prompt.
 
 ### Countdown
 Large figure in the bench corner, announced as a timer. Seconds left in time mode; words done over the total in words mode. It shows from `ready` through `typing` and goes when the sheet is sent. `text` while ready, `strong` while typing, the change easing over 240ms.
+
+### Caps Lock Notice
+A "Caps Lock" chip at the card's top right while Caps Lock is on, so a learner sees why every letter comes out wrong. It is the focus prompt's chip: `card` fill, a 1px `line-mid` ring with the lift stack, Caption type in `strong`, padded 8px 14px. It sits 22px in from the right with its centre on the countdown's figures, so the two read as one band: Courier Prime's figures centre 0.43em below the top of the countdown's line, which starts 22px down on desktop and 38px down on phones. It shows from `ready` through `typing`, never on the result plate, while loading, scoring or after a failure, and hides when the card loses focus, since the browser reports the state only on keys the stage receives. It fades in over 160ms on the kit ease, at once under reduced motion. Screen readers hear it from a polite status region.
 
 ### Legend
 A row of keys under the card: an 18 by 10px swatch with 1px radius and a hairline ring, then a sentence-case description. While typing the swatches show ribbon ink, ribbon red and faint copy. On the result the legend switches to the chart's encoding: a 2px `strong` bar for "wpm so far", a 2px `line-mid` bar for "raw wpm of each second", and a 10px cross in `ribbon-red-plate` for "Wrong keys per second, right scale".
@@ -384,7 +392,7 @@ Generated by the figure build into static SVG layers; the app moves only named p
 - **Do** set the test length as segmented controls and the tools as icon buttons in the bar; show binary tools with `aria-pressed`.
 - **Do** declare every new colour as a dark and light pair on the same token name.
 - **Do** keep machine motion stepped: one cell per key, two-frame strikes, glides only for the return and the line feed. Result motion is one pen trace and one fade. Nothing moves under reduced motion.
-- **Do** keep the plate's captions to the two bottom corners: hint and status readout. No figure numbers or titles.
+- **Do** keep the plate's captions to the two bottom corners: hint and status readout. No figure numbers or titles. The top corners hold only the countdown and, while Caps Lock is on, the transient Caps Lock notice at top right.
 - **Do** keep chart marks off the wpm gridlines by choosing the error axis top, not by nudging marks.
 
 ### Don't:

@@ -19,7 +19,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
 # Browser APIs: Web Audio for the machine's sounds, storage and media queries for preferences,
-# and focus without scrolling for the typing stage.
+# focus without scrolling for the typing stage, and key events for the Caps Lock state.
 web-sys = { version = "0.3", features = [
     "AudioBuffer",
     "AudioBufferSourceNode",
@@ -30,6 +30,7 @@ web-sys = { version = "0.3", features = [
     "Element",
     "FocusOptions",
     "HtmlElement",
+    "KeyboardEvent",
     "MediaQueryList",
     "Performance",
     "Storage",

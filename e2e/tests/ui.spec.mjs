@@ -214,6 +214,32 @@ test("a time test counts down and is scored at its limit", async ({ page }, test
     await screen(page, testInfo, "5-time-result");
 });
 
+test("a Caps Lock notice shows while Caps Lock is on and the card has focus", async ({ page }, testInfo) => {
+    await openApp(page);
+    const stage = page.locator("#tw-stage");
+    const notice = page.getByRole("status").getByText("Caps Lock", { exact: true });
+    // keyboard.press("CapsLock") leaves getModifierState false in headless Chromium, so keys carry it.
+    const key = (type, key, code, capsLock) =>
+        stage.dispatchEvent(type, { key, code, modifierCapsLock: capsLock, bubbles: true });
+    await stage.click();
+    await expect(notice).toHaveCount(0);
+
+    await key("keydown", "CapsLock", "CapsLock", true);
+    await expect(notice).toBeVisible();
+    await screen(page, testInfo, "6-caps-lock");
+    await key("keydown", "A", "KeyA", true);
+    await key("keyup", "A", "KeyA", true);
+    await expect(page.locator("[data-corner=readout]")).toHaveText("typing");
+    await expect(notice).toBeVisible();
+    await key("keyup", "CapsLock", "CapsLock", false);
+    await expect(notice).toHaveCount(0);
+
+    await key("keydown", "CapsLock", "CapsLock", true);
+    await expect(notice).toBeVisible();
+    await page.evaluate(() => document.activeElement.blur());
+    await expect(notice).toBeHidden();
+});
+
 test("each test kind keeps the length last chosen for it", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "the bar's logic does not depend on size");
     await openApp(page);

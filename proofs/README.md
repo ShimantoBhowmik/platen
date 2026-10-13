@@ -26,6 +26,19 @@ A successful build means every theorem is proven. The build treats warnings as e
   when one does. `time_wordCount_minimal` proves the text is no longer than that requires.
 - `Platen/Marks.lean` holds the per-second record that the scoring replay keeps for the speed
   chart.
+- `Platen/Timeline.lean` models `timeline` in `server/src/scoring.rs`. It proves the chart has
+  one point per scored second, that each point gets the keys and errors of its own second, and
+  `timeline_last`: the last point counts the test's final characters through its full
+  duration, so it equals the test's WPM.
+- `Platen/KeyOrder.lean` models `weaker_first`, the comparator that sorts the weakest keys. It
+  proves the comparator is a total order, which Rust's sort requires (since Rust 1.81 a sort
+  may panic otherwise), and that its products cannot overflow.
+- `Platen/Chart.lean` models `errors_scale` and `label_every` in `web/src/chart.rs`. It proves
+  that no error mark lands on a WPM gridline, that the chosen scale is the smallest that
+  achieves this, and that the ruler labels fit.
+- `Platen/SheetLayout.lean` models the line wrapping in `Session::new` and `line_of` in
+  `web/src/session.rs`. It proves every line fits the sheet unless it holds one long word,
+  that wrapping is greedy, and that `line_of` finds the line holding each word.
 
 ## What the models leave out
 

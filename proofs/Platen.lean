@@ -1,5 +1,6 @@
 import Platen.Mode
 import Platen.Marks
+import Platen.Words
 import Platen.Timeline
 import Platen.KeyOrder
 import Platen.Chart

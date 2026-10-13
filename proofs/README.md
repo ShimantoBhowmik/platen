@@ -26,6 +26,11 @@ A successful build means every theorem is proven. The build treats warnings as e
   when one does. `time_wordCount_minimal` proves the text is no longer than that requires.
 - `Platen/Marks.lean` holds the per-second record that the scoring replay keeps for the speed
   chart.
+- `Platen/Words.lean` models the word generator in `server/src/words.rs`, bit for bit: a
+  `#guard` reproduces the sequence the Rust test pins. It proves that `below_excluding` maps
+  its draws one to one onto the allowed indices, that a word never repeats either of the two
+  before it, that each index is hit by `floor(2^64 / bound)` or `ceil(2^64 / bound)` draws,
+  and that a shorter text is a prefix of a longer one from the same seed.
 - `Platen/Timeline.lean` models `timeline` in `server/src/scoring.rs`. It proves the chart has
   one point per scored second, that each point gets the keys and errors of its own second, and
   `timeline_last`: the last point counts the test's final characters through its full

@@ -26,16 +26,19 @@ impl SplitMix64 {
         z ^ (z >> 31)
     }
 
-    /// Uniform index in `0..bound` by Lemire's multiply-shift, which avoids a slow modulo.
+    /// Index in `0..bound` by Lemire's multiply-shift, which avoids a slow modulo. Without a
+    /// rejection step it is uniform up to one draw in 2^64: each index is hit by
+    /// `floor(2^64 / bound)` or `ceil(2^64 / bound)` of the draws.
     fn below(&mut self, bound: usize) -> usize {
         ((u128::from(self.next_u64()) * bound as u128) >> 64) as usize
     }
 
-    /// Uniform index in `0..bound` that is none of the `excluded` indices.
+    /// Index in `0..bound` that is none of the `excluded` indices, as uniform as [`Self::below`].
     ///
     /// It draws from the allowed indices only, then shifts the draw past each excluded index
     /// in ascending order, so no retry loop is needed. The `Some` entries must be distinct and
-    /// below `bound`. `None` entries exclude nothing.
+    /// below `bound`, and fewer than `bound`, so some index is left. `None` entries exclude
+    /// nothing.
     fn below_excluding(&mut self, bound: usize, mut excluded: [Option<usize>; 2]) -> usize {
         // `Option` orders `None` before every `Some`, so sorting puts the indices to skip last,
         // in ascending order. `.flatten()` then iterates over only the `Some` values.

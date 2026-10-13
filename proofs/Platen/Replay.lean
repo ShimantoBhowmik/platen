@@ -16,7 +16,8 @@ exact integer form of its float comparison.
 The theorems, in the order the proofs build them: `Inv` is the representation invariant that
 keeps every index and slice of the Rust in bounds (`init_inv`, `step_inv`); `absStep_lock` and
 `step_lock` are the lock on a correct committed word; `Inv.credit` is the WPM credit of the
-committed words; `step_keys` and `charKeys_ge_of_finished` count the recorded keystrokes, and
+committed words; `space_hit_iff` is when a space counts as a hit; `step_keys` and
+`charKeys_ge_of_finished` count the recorded keystrokes, and
 `tooFast_sound` turns the count into the `TooFast` answer for time tests; `run_ok` collects
 what holds of every accepted replay, including the per-second marks.
 
@@ -159,20 +160,25 @@ def character (targets : List (List Char)) (r : Replay) (c : Char) : Replay × B
   let r := { r with typed := r.typed ++ [c], wordChars := r.wordChars + 1 }
   (r, r.isLastWord targets && r.currentWord == r.target targets)
 
-/-- `Replay::space`. The Rust's `if correct { committed_correct_chars += n }` is written as
-`+= if correct then n else 0`. -/
+/-- Whether a space falls where the text has one: not on the last word, and after as many
+letters as the word has, right or wrong. This is the `correct` flag `Replay::space` records. -/
+def spaceInPlace (targets : List (List Char)) (r : Replay) : Bool :=
+  !r.isLastWord targets && r.wordChars == (r.target targets).length
+
+/-- `Replay::space`. The Rust's `if current_word == target { committed_correct_chars += n }` is
+written as `+= if current_word == target then n else 0`. -/
 def space (targets : List (List Char)) (r : Replay) : Replay × Bool :=
   if r.wordChars = 0 then (r, false)
   else
-    let expected := ((r.target targets)[r.wordChars]?).getD ' '
-    let correct := r.currentWord == r.target targets
-    let r := r.record correct (some expected)
+    let target := r.target targets
+    let expected := (target[r.wordChars]?).getD ' '
+    let r := r.record (r.spaceInPlace targets) (some expected)
     if r.isLastWord targets then (r, true)
     else
       let typed := r.typed ++ [' ']
       ({ r with
           committedCorrectChars :=
-            r.committedCorrectChars + if correct then r.wordChars + 1 else 0
+            r.committedCorrectChars + if r.currentWord == target then r.wordChars + 1 else 0
           typed, wordStart := typed.length, wordIndex := r.wordIndex + 1, wordChars := 0 },
         false)
 
@@ -261,13 +267,21 @@ def run (mode : TestMode) (targets : List (List Char)) (keys : List Char) (times
     | some limitMs => .ok { r with elapsedMs := limitMs, finished := fin }
     | none => if fin then .ok { r with finished := fin } else .error .incomplete
 
-/-- The integer checks of `Replay::into_scored`: `Empty`, a zero duration, and the speed cap.
-The rhythm check and the score arithmetic are not modelled. -/
+/-- The integer checks of `Replay::into_scored`: `Empty`, a zero scored duration, and the speed
+cap over the scored duration. The rhythm check and the score arithmetic are not modelled. -/
 def intoScoredChecks (r : Replay) : Except Rejection Unit :=
   if r.keys = 0 then .error .empty
-  else if r.elapsedMs = 0 then .error .tooFast
-  else if ¬ underCap r.keys r.elapsedMs then .error .tooFast
-  else .ok ()
+  else
+    let scored := scoredMs r.elapsedMs
+    if scored = 0 then .error .tooFast
+    else if ¬ underCap r.keys scored then .error .tooFast
+    else .ok ()
+
+/-- Time limits are whole seconds, so the rounding leaves them alone: the duration
+`tooFast_sound` speaks of is the one `into_scored` checks. -/
+theorem scoredMs_timeLimit (m : TestMode) {limitMs : Nat} (hm : m.timeLimitMs = some limitMs) :
+    scoredMs limitMs = limitMs := by
+  cases m <;> simp [TestMode.timeLimitMs, TestMode.spec] at hm <;> subst hm <;> decide
 
 /-! ## Conformance checks
 
@@ -303,6 +317,19 @@ expected key; only the space that commits the word is tallied as a miss. -/
   r.incorrectKeystrokes == 2 && (r.keyTallies ' ').misses == 1 && (r.keyTallies 'q').misses == 0 &&
     (r.keyTallies 'q').hits == 0 && (r.keyTallies 'a').hits == 1
 
+/-! `space_after_a_full_length_wrong_word_is_a_hit`: the space after "ax" falls where the text
+has one, so only the `x` is wrong, and the word earns no WPM credit. -/
+#guard okWith (runPaced .words10 ["ab", "cd"] "ax cd") fun r =>
+  r.correctKeystrokes == 4 && r.incorrectKeystrokes == 1 && (r.keyTallies ' ').hits == 1 &&
+    (r.keyTallies ' ').misses == 0 && (r.keyTallies 'b').misses == 1 &&
+    r.committedCorrectChars == 0
+
+/-! `space_on_the_last_word_is_a_miss`: the last word has no space after it, so the space that
+ends the test on "cx" is a miss even though "cx" is full length. -/
+#guard okWith (runPaced .words10 ["ab", "cd"] "ab cx ") fun r =>
+  r.correctKeystrokes == 4 && r.incorrectKeystrokes == 2 && (r.keyTallies ' ').hits == 1 &&
+    (r.keyTallies ' ').misses == 1 && r.finished
+
 /-! `correct_word_is_locked_against_backspace`: re-committing a correct word earns nothing. -/
 #guard
   let honest := runPaced .time60 ["ab", "cd"] "ab "
@@ -323,6 +350,11 @@ expected key; only the space that commits the word is tallied as a miss. -/
 
 /-! A time test that reaches the end of its text is `TooFast`. -/
 #guard runPaced .time15 ["ab", "cd"] "ab cd" matches .error .tooFast
+
+/-! `into_scored` checks the scored duration: one key in 4 ms rounds to no time at all, and the
+same key over 995 ms is scored over a whole second. -/
+#guard intoScoredChecks { init with correctKeystrokes := 1, elapsedMs := 4 } matches .error .tooFast
+#guard intoScoredChecks { init with correctKeystrokes := 1, elapsedMs := 995 } matches .ok ()
 
 /-! `wrong_last_word_ends_test_without_credit`: the committed words pair with their targets. -/
 #guard okWith (runPaced .words10 ["ab", "cd"] "ab c ") fun r =>
@@ -554,10 +586,15 @@ theorem character_inv (h : Inv targets committed current r) (hc : c ≠ ' ') :
 theorem space_ignored (h : r.wordChars = 0) : r.space targets = (r, false) := by
   simp [space, h]
 
+theorem record_spaceInPlace :
+    (r.record ok e).spaceInPlace targets = r.spaceInPlace targets := by
+  simp [spaceInPlace, record_isLastWord, record_wordChars, record_target]
+
+attribute [simp] record_spaceInPlace
+
 theorem space_last_fst (h0 : r.wordChars ≠ 0) (hl : r.isLastWord targets = true) :
     (r.space targets).1 =
-      r.record (r.currentWord == r.target targets)
-        (some (((r.target targets)[r.wordChars]?).getD ' ')) := by
+      r.record (r.spaceInPlace targets) (some (((r.target targets)[r.wordChars]?).getD ' ')) := by
   simp [space, h0, hl]
 
 theorem space_last_snd (h0 : r.wordChars ≠ 0) (hl : r.isLastWord targets = true) :
@@ -566,8 +603,7 @@ theorem space_last_snd (h0 : r.wordChars ≠ 0) (hl : r.isLastWord targets = tru
 
 theorem space_commit_fst (h0 : r.wordChars ≠ 0) (hl : r.isLastWord targets = false) :
     (r.space targets).1 =
-      { r.record (r.currentWord == r.target targets)
-          (some (((r.target targets)[r.wordChars]?).getD ' ')) with
+      { r.record (r.spaceInPlace targets) (some (((r.target targets)[r.wordChars]?).getD ' ')) with
         committedCorrectChars :=
           r.committedCorrectChars +
             if (r.currentWord == r.target targets) then r.wordChars + 1 else 0
@@ -636,8 +672,26 @@ theorem space_commit_inv (h : Inv targets committed current r) (hne : current �
       have := h.keys
       simp only [keys, List.length_append, List.length_singleton, record_correct,
         record_incorrect] at this ⊢
-      generalize (r.currentWord == r.target targets) = ok at *
+      generalize r.spaceInPlace targets = ok at *
       cases ok <;> simp <;> omega }
+
+/-- A space that is not ignored counts as a hit exactly when it falls where the text has one:
+not on the last word, and after as many letters as the target has, whatever they are. -/
+theorem space_hit_iff (h : Inv targets committed current r) (hne : current ≠ []) :
+    (r.space targets).1.correctKeystrokes = r.correctKeystrokes + 1 ↔
+      committed.length + 1 ≠ targets.length ∧
+        current.length = ((targets[committed.length]?).getD []).length := by
+  have h0 : r.wordChars ≠ 0 := by simp [h.wordChars, hne]
+  have hin : r.spaceInPlace targets = true ↔
+      committed.length + 1 ≠ targets.length ∧
+        current.length = ((targets[committed.length]?).getD []).length := by
+    simp [spaceInPlace, h.isLastWord, h.wordChars, h.target]
+  rw [← hin]
+  cases hl : r.isLastWord targets
+  · rw [space_commit_fst h0 hl, record_correct]
+    cases r.spaceInPlace targets <;> simp
+  · rw [space_last_fst h0 hl, record_correct]
+    cases r.spaceInPlace targets <;> simp
 
 /-! ### `backspace` -/
 

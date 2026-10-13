@@ -10,11 +10,15 @@ This models `timeline` with its last-point fix. The unfixed code gives the last 
 whose unscored partial second holds keys ends its timeline off the test's WPM: at 2,300 ms
 with a key in second 2, the last point counts the chars before that key over 2 s.
 
+`elapsedMs` is the raw length of the test. The whole seconds and the tail's span come from it;
+whether the tail is scored and where the last point ends come from `scoredMs elapsedMs`, the
+rounded duration the test's WPM is computed over.
+
 Abstractions: `Nat` for the `u32` counts and milliseconds. A point keeps the integer pairs its
 two floats are computed from instead of the floats: `wpm` is `correct_chars * 12 / through_s`
 and `raw_wpm` is `chars * 12 / span_s`, so equal pairs give equal floats. `whole_seconds +
-u32::from(has_tail)` cannot overflow because the caller bounds `elapsed_ms` first. The mutable
-cursor `next` is modelled by the suffix `marks[next..]` it points into.
+u32::from(has_tail)` and the rounding cannot overflow because the caller bounds `elapsed_ms`
+first. The mutable cursor `next` is modelled by the suffix `marks[next..]` it points into.
 -/
 
 namespace Platen
@@ -36,9 +40,10 @@ structure TimelinePoint where
 def Ascending (marks : List SecondMark) : Prop :=
   marks.Pairwise fun a b => a.second < b.second
 
-/-- `has_tail`: a word test scores a last partial second of at least 500 ms. -/
+/-- `has_tail`: a word test scores a last partial second when the scored duration puts it at
+half a second or more. -/
 def hasTail (elapsedMs : Nat) (scoresPartialSecond : Bool) : Bool :=
-  scoresPartialSecond && decide (500 ≤ elapsedMs % 1000)
+  scoresPartialSecond && decide (500 ≤ scoredMs elapsedMs % 1000)
 
 /-- `whole_seconds + u32::from(has_tail)`: how many points the timeline has. -/
 def pointCount (elapsedMs : Nat) (scoresPartialSecond : Bool) : Nat :=
@@ -53,8 +58,9 @@ def consume (rest : List SecondMark) (second : Nat) : Option SecondMark × List 
 
 /-- The closure `timeline` maps over `0..count`: the points from `second` on, with `rest` the
 marks from `next` on and `n` points left. The last point counts `final_correct_chars` through
-`elapsed_ms`, so it equals the test's WPM even when an unscored partial second holds keys;
-every other point counts what the next second with keys starts from, through its own end. -/
+the scored duration, so it equals the test's WPM even when an unscored partial second holds
+keys; every other point counts what the next second with keys starts from, through its own
+end. -/
 def timelineFrom (finalCorrectChars elapsedMs count : Nat) :
     List SecondMark → Nat → Nat → List TimelinePoint
   | _, _, 0 => []
@@ -69,7 +75,7 @@ def timelineFrom (finalCorrectChars elapsedMs count : Nat) :
         | m :: _ => m.correctCharsBefore
         | [] => finalCorrectChars
     let spanMs := if second < wholeSeconds then 1000 else tailMs
-    let throughMs := if last then elapsedMs else (second + 1) * 1000
+    let throughMs := if last then scoredMs elapsedMs else (second + 1) * 1000
     { correctChars, throughMs, chars := (here.map (·.chars)).getD 0, spanMs,
       errors := (here.map (·.errors)).getD 0 } ::
       timelineFrom finalCorrectChars elapsedMs count rest' (second + 1) n
@@ -90,11 +96,48 @@ theorem length_timelineFrom (f e c : Nat) (rest : List SecondMark) (second n : N
   | zero => rfl
   | succ n ih => simp [timelineFrom, ih]
 
-/-- One point per whole second, plus one for a scored partial second of at least 500 ms. -/
+/-- One point per whole second, plus one for a scored partial second that the rounded duration
+puts at 500 ms or more. -/
 theorem length_timeline (marks : List SecondMark) (f elapsedMs : Nat) (p : Bool) :
     (timeline marks f elapsedMs p).length =
-      elapsedMs / 1000 + if p ∧ 500 ≤ elapsedMs % 1000 then 1 else 0 := by
+      elapsedMs / 1000 + if p ∧ 500 ≤ scoredMs elapsedMs % 1000 then 1 else 0 := by
   simp [timeline, length_timelineFrom, pointCount, hasTail]
+
+/-- Rounding up to a whole second never scores a tail, so a scored tail holds at least 495 ms
+of raw time. -/
+theorem hasTail_span {elapsedMs : Nat} {p : Bool} (h : hasTail elapsedMs p = true) :
+    495 ≤ elapsedMs % 1000 := by
+  simp only [hasTail, Bool.and_eq_true, decide_eq_true_eq] at h
+  unfold scoredMs at h
+  omega
+
+theorem timelineFrom_span (f e c : Nat) (n : Nat) :
+    ∀ (rest : List SecondMark) (second : Nat), second + n = c → c ≤ e / 1000 + 1 →
+      (c = e / 1000 + 1 → 495 ≤ e % 1000) →
+      ∀ pt ∈ timelineFrom f e c rest second n, 495 ≤ pt.spanMs := by
+  induction n with
+  | zero => intro _ _ _ _ _ _ h; simp [timelineFrom] at h
+  | succ n ih =>
+    intro rest second hc hle htail pt hpt
+    simp only [timelineFrom, List.mem_cons] at hpt
+    rcases hpt with rfl | hpt
+    · simp only
+      split
+      · omega
+      · omega
+    · exact ih _ (second + 1) (by omega) hle htail pt hpt
+
+/-- Every point spans at least 495 ms: a whole second, or a scored tail. So no point's raw
+speed divides by zero. -/
+theorem timeline_span (marks : List SecondMark) (f elapsedMs : Nat) (p : Bool) :
+    ∀ pt ∈ timeline marks f elapsedMs p, 495 ≤ pt.spanMs := by
+  unfold timeline pointCount
+  refine timelineFrom_span f elapsedMs _ _ marks 0 (Nat.zero_add _) ?_ ?_
+  · split <;> omega
+  · intro hc
+    split at hc
+    · next h => exact hasTail_span h
+    · omega
 
 theorem markAt_none {rest : List SecondMark} {second : Nat}
     (h : ∀ m ∈ rest, second < m.second) : markAt rest second = none := by
@@ -190,7 +233,7 @@ theorem timeline_errors {marks : List SecondMark} (hasc : Ascending marks) (f el
 theorem timelineFrom_last (f e c : Nat) (n : Nat) :
     ∀ (rest : List SecondMark) (second : Nat), second + n = c →
       ∀ pt, (timelineFrom f e c rest second n).getLast? = some pt →
-        pt.correctChars = f ∧ pt.throughMs = e := by
+        pt.correctChars = f ∧ pt.throughMs = scoredMs e := by
   induction n with
   | zero => intro _ _ _ _ h; simp [timelineFrom] at h
   | succ n ih =>
@@ -205,11 +248,11 @@ theorem timelineFrom_last (f e c : Nat) (n : Nat) :
       rw [List.getLast?_cons_cons] at h
       exact ih _ (second + 1) (by omega) pt h
 
-/-- The last point equals the test's WPM: it counts `final_correct_chars` through
-`elapsed_ms`. -/
+/-- The last point equals the test's WPM: it counts `final_correct_chars` through the scored
+duration, `scoredMs elapsedMs`. -/
 theorem timeline_last (marks : List SecondMark) (f elapsedMs : Nat) (p : Bool)
     {pt : TimelinePoint} (h : (timeline marks f elapsedMs p).getLast? = some pt) :
-    pt.correctChars = f ∧ pt.throughMs = elapsedMs :=
+    pt.correctChars = f ∧ pt.throughMs = scoredMs elapsedMs :=
   timelineFrom_last f elapsedMs _ _ marks 0 (Nat.zero_add _) pt h
 
 private def marksOf (seconds : List (Nat × Nat × Nat × Nat)) : List SecondMark :=
@@ -235,5 +278,21 @@ private def marksOf (seconds : List (Nat × Nat × Nat × Nat)) : List SecondMar
 -- counts every credited character through the whole 2.3 s.
 #guard (timeline (marksOf [(0, 5, 0, 0), (1, 5, 0, 5), (2, 2, 0, 10)]) 12 2300 true).getLast? =
   some ⟨12, 2300, 5, 1000, 0⟩
+
+-- `scored_tail_follows_the_rounded_duration_and_spans_the_raw_time`: two keys in second 2.
+-- 2,495 ms rounds to 2,500, so the tail is scored over its 495 ms of raw time; 2,494 ms rounds
+-- to 2,490 and is not; 2,996 ms rounds up to a whole 3 s, with no tail and a last point ending
+-- at 3,000 ms.
+#guard (timeline (marksOf [(2, 2, 0, 0)]) 10 2495 true).length = 3
+#guard (timeline (marksOf [(2, 2, 0, 0)]) 10 2495 true).getLast? = some ⟨10, 2500, 2, 495, 0⟩
+#guard (timeline (marksOf [(2, 2, 0, 0)]) 10 2494 true).length = 2
+#guard (timeline (marksOf [(2, 2, 0, 0)]) 10 2996 true).length = 2
+#guard (timeline (marksOf [(2, 2, 0, 0)]) 10 2996 true).getLast? = some ⟨10, 3000, 0, 1000, 0⟩
+
+-- `scored_duration_rounds_to_the_nearest_ten_milliseconds`: 12,345 ms is scored as 12,350 and
+-- 12,344 ms as 12,340; neither tail reaches half a second.
+#guard (timeline [] 60 12345 true).getLast? = some ⟨60, 12350, 0, 1000, 0⟩
+#guard (timeline [] 60 12344 true).getLast? = some ⟨60, 12340, 0, 1000, 0⟩
+#guard (timeline [] 60 12345 true).length = 12
 
 end Platen

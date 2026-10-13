@@ -54,7 +54,8 @@ pub struct TestStats {
     pub correct_keystrokes: u32,
     /// Character keystrokes that did not match the text when typed.
     pub incorrect_keystrokes: u32,
-    /// Duration the scores are computed over, in milliseconds.
+    /// Duration the scores are computed over, in milliseconds: the test's length rounded to
+    /// the nearest 10 ms, from [`scored_ms`].
     pub elapsed_ms: u32,
 }
 
@@ -65,8 +66,9 @@ pub struct KeyStat {
     pub key: char,
     /// Keystrokes that typed this key where the text expected it.
     pub hits: u32,
-    /// Keystrokes that typed something else where the text expected this key. A space that
-    /// commits a mistyped full-length word counts as a missed space.
+    /// Keystrokes that typed something else where the text expected this key. A space is a
+    /// hit where the text has one: after as many letters as the word has, right or wrong. A
+    /// space on the last word, which has none after it, is a missed space.
     pub misses: u32,
 }
 
@@ -138,6 +140,12 @@ struct SecondMark {
 /// The second a keystroke belongs to. A key at exactly 1,000 ms closes the first second.
 fn second_of(time_ms: u32) -> u32 {
     time_ms.saturating_sub(1) / 1_000
+}
+
+/// The duration the scores are computed over: the test's length rounded to the nearest 10 ms,
+/// halves up. The caller must already have bounded `elapsed_ms`, so the sum cannot overflow.
+fn scored_ms(elapsed_ms: u32) -> u32 {
+    (elapsed_ms + 5) / 10 * 10
 }
 
 /// Hits and misses for one expected key, indexed by its ASCII byte in [`Replay`].
@@ -252,16 +260,16 @@ pub fn evaluate(
 
 /// Expands the sparse per-second marks of a replay into one point per scored second.
 ///
-/// A word test also scores its last partial second when it is at least half a second long; a
-/// time test always ends on a whole second. Keys in an unscored partial second count only
-/// toward the WPM of the last point.
+/// A word test also scores its last partial second when the scored duration puts it at half a
+/// second or more; a time test always ends on a whole second. Keys in an unscored partial
+/// second count only toward the WPM of the last point.
 ///
 /// # Arguments
 ///
 /// * `marks` - The replay's marks, in ascending order of `second`
 /// * `final_correct_chars` - Characters that count toward WPM at the end of the test
-/// * `elapsed_ms` - The scored duration of the test. It must already be bounded, because the
-///   result has one point per second.
+/// * `elapsed_ms` - How long the test took, before rounding. It must already be bounded,
+///   because the result has one point per second.
 /// * `scores_partial_second` - Whether a final partial second gets its own point
 ///
 /// # Returns
@@ -275,7 +283,10 @@ fn timeline(
 ) -> Vec<TimelinePoint> {
     let whole_seconds = elapsed_ms / 1_000;
     let tail_ms = elapsed_ms % 1_000;
-    let has_tail = scores_partial_second && tail_ms >= 500;
+    let scored_ms = scored_ms(elapsed_ms);
+    // Rounding up to a whole second never scores a tail, so a scored tail spans at least
+    // 495 ms of raw time.
+    let has_tail = scores_partial_second && scored_ms % 1_000 >= 500;
     let points = whole_seconds + u32::from(has_tail);
     // Index of the first mark not yet consumed. Marks ascend, so one forward pass pairs them.
     let mut next = 0;
@@ -286,7 +297,7 @@ fn timeline(
                 next += 1;
             }
             let (correct_chars, through_ms) = if second + 1 == points {
-                (final_correct_chars, elapsed_ms)
+                (final_correct_chars, scored_ms)
             } else {
                 // The next second with keys starts from what this second ended with.
                 let correct_chars = marks
@@ -532,19 +543,21 @@ impl<'t> Replay<'t> {
             // Typing tests ignore a space before any letter of a word.
             return false;
         }
+        let target = self.target();
         // A premature space misses the next letter; after a full word it is the space itself.
-        let expected = self
-            .target()
+        let expected = target
             .as_bytes()
             .get(self.word_chars)
             .copied()
             .unwrap_or(b' ');
-        let correct = self.current_word() == self.target();
-        self.record(correct, Some(expected));
+        // The space is the right key where the text has one: after as many letters as the word
+        // has, whether or not they are right. The last word has no space after it.
+        let in_place = !self.is_last_word() && self.word_chars == target.len();
+        self.record(in_place, Some(expected));
         if self.is_last_word() {
             return true;
         }
-        if correct {
+        if self.current_word() == target {
             // A correct word is locked against backspace, so this credit is never taken back.
             // Word lengths are tiny, so the cast cannot truncate.
             self.committed_correct_chars += self.word_chars as u32 + 1;
@@ -638,19 +651,22 @@ impl<'t> Replay<'t> {
         self.typed.chars().count() as u32 + u32::from(self.ended_on_space)
     }
 
-    /// Applies the speed and rhythm checks, then computes the scores.
+    /// Applies the speed and rhythm checks, then computes the scores over the rounded
+    /// duration from [`scored_ms`].
     ///
     /// `scores_partial_second` is whether a final partial second gets its own timeline point.
-    /// The caller must already have bounded `elapsed_ms`, which sets the timeline's length.
+    /// The caller must already have bounded `elapsed_ms`, which sets the timeline's length
+    /// and keeps the rounding from overflowing.
     fn into_scored(self, scores_partial_second: bool) -> Result<Scored, Rejection> {
         let typed_keystrokes = self.correct_keystrokes + self.incorrect_keystrokes;
         if typed_keystrokes == 0 {
             return Err(Rejection::Empty);
         }
-        if self.elapsed_ms == 0 {
+        let scored_ms = scored_ms(self.elapsed_ms);
+        if scored_ms == 0 {
             return Err(Rejection::TooFast);
         }
-        if words_per_minute(typed_keystrokes, self.elapsed_ms) > f64::from(MAX_KEYSTROKE_WPM) {
+        if words_per_minute(typed_keystrokes, scored_ms) > f64::from(MAX_KEYSTROKE_WPM) {
             return Err(Rejection::TooFast);
         }
         let interval_cv = self.intervals.coefficient_of_variation();
@@ -668,15 +684,15 @@ impl<'t> Replay<'t> {
             scores_partial_second,
         );
         let stats = TestStats {
-            wpm: round2(words_per_minute(correct_chars, self.elapsed_ms)),
-            raw_wpm: round2(words_per_minute(self.final_chars(), self.elapsed_ms)),
+            wpm: round2(words_per_minute(correct_chars, scored_ms)),
+            raw_wpm: round2(words_per_minute(self.final_chars(), scored_ms)),
             accuracy: round2(
                 f64::from(self.correct_keystrokes) * 100.0 / f64::from(typed_keystrokes),
             ),
             consistency: consistency(&timeline),
             correct_keystrokes: self.correct_keystrokes,
             incorrect_keystrokes: self.incorrect_keystrokes,
-            elapsed_ms: self.elapsed_ms,
+            elapsed_ms: scored_ms,
         };
         Ok(Scored {
             stats,
@@ -741,6 +757,11 @@ mod tests {
         score_late(mode, keys, times).map(|scored| scored.stats)
     }
 
+    /// The minutes a word test ending on the last of `times` is scored over.
+    fn scored_minutes(times: &[u32]) -> f64 {
+        f64::from(scored_ms(*times.last().expect("non-empty"))) / 60_000.0
+    }
+
     #[test]
     fn perfect_word_test_scores_full_accuracy() {
         let keys = perfect_keys(&targets(TestMode::Words10));
@@ -748,7 +769,7 @@ mod tests {
 
         let stats = evaluate_late(TestMode::Words10, &keys, &times).expect("valid submission");
 
-        let elapsed_ms = *times.last().expect("non-empty");
+        let elapsed_ms = scored_ms(*times.last().expect("non-empty"));
         let expected_wpm = round2(keys.len() as f64 / 5.0 / (f64::from(elapsed_ms) / 60_000.0));
         assert_eq!(stats.wpm, expected_wpm);
         assert_eq!(stats.raw_wpm, expected_wpm);
@@ -756,6 +777,27 @@ mod tests {
         assert_eq!(stats.correct_keystrokes as usize, keys.len());
         assert_eq!(stats.incorrect_keystrokes, 0);
         assert_eq!(stats.elapsed_ms, elapsed_ms);
+    }
+
+    #[test]
+    fn scored_duration_rounds_to_the_nearest_ten_milliseconds() {
+        let keys = perfect_keys(&targets(TestMode::Words10));
+        let mut times = human_times(keys.len());
+        let last = times.len() - 1;
+        let minutes = |ms: f64| ms / 60_000.0;
+
+        times[last] = 12_345;
+        let up = evaluate_late(TestMode::Words10, &keys, &times).expect("valid submission");
+        times[last] = 12_344;
+        let down = evaluate_late(TestMode::Words10, &keys, &times).expect("valid submission");
+
+        assert_eq!(up.elapsed_ms, 12_350);
+        assert_eq!(up.wpm, round2(keys.len() as f64 / 5.0 / minutes(12_350.0)));
+        assert_eq!(down.elapsed_ms, 12_340);
+        assert_eq!(
+            down.wpm,
+            round2(keys.len() as f64 / 5.0 / minutes(12_340.0))
+        );
     }
 
     #[test]
@@ -786,10 +828,62 @@ mod tests {
 
         let stats = evaluate_late(TestMode::Words10, &keys, &times).expect("valid submission");
 
-        let elapsed_minutes = f64::from(*times.last().expect("non-empty")) / 60_000.0;
+        let elapsed_minutes = scored_minutes(&times);
         let credited = keys.len() - words[0].len() - 1;
         assert_eq!(stats.wpm, round2(credited as f64 / 5.0 / elapsed_minutes));
-        assert_eq!(stats.incorrect_keystrokes as usize, words[0].len() + 1);
+        // The space after the full-length wrong word is where the text has one, so it is right.
+        assert_eq!(stats.incorrect_keystrokes as usize, words[0].len());
+    }
+
+    #[test]
+    fn space_after_a_full_length_wrong_word_is_a_hit() {
+        let words = targets(TestMode::Words10);
+        let first = words[0];
+        let last = first.as_bytes()[first.len() - 1];
+        let typo = format!("{}{}", &first[..first.len() - 1], wrong_letter(last));
+        let keys = format!("{typo} {}", perfect_keys(&words[1..]));
+        let times = human_times(keys.len());
+
+        let scored = score_late(TestMode::Words10, &keys, &times).expect("valid submission");
+
+        assert_eq!(scored.stats.correct_keystrokes as usize, keys.len() - 1);
+        assert_eq!(scored.stats.incorrect_keystrokes, 1);
+        assert_eq!(
+            scored.stats.accuracy,
+            round2((keys.len() - 1) as f64 * 100.0 / keys.len() as f64)
+        );
+        assert_eq!(
+            key_stat(&scored.breakdown, ' '),
+            Some(KeyStat {
+                key: ' ',
+                hits: 9,
+                misses: 0
+            })
+        );
+    }
+
+    #[test]
+    fn space_on_the_last_word_is_a_miss() {
+        let words = targets(TestMode::Words10);
+        let last = words[9];
+        let first = last.as_bytes()[0];
+        // The same full-length typo as above, but on the last word, which has no space after it.
+        let typo = format!("{}{}", wrong_letter(first), &last[1..]);
+        let keys = format!("{} {typo} ", perfect_keys(&words[..9]));
+        let times = human_times(keys.len());
+
+        let scored = score_late(TestMode::Words10, &keys, &times).expect("valid submission");
+
+        assert_eq!(scored.stats.correct_keystrokes as usize, keys.len() - 2);
+        assert_eq!(scored.stats.incorrect_keystrokes, 2);
+        assert_eq!(
+            key_stat(&scored.breakdown, ' '),
+            Some(KeyStat {
+                key: ' ',
+                hits: 9,
+                misses: 1
+            })
+        );
     }
 
     #[test]
@@ -803,7 +897,7 @@ mod tests {
         let stats = evaluate_late(TestMode::Words10, &keys, &times).expect("valid submission");
 
         assert_eq!(stats.incorrect_keystrokes, 2);
-        let elapsed_minutes = f64::from(*times.last().expect("non-empty")) / 60_000.0;
+        let elapsed_minutes = scored_minutes(&times);
         let credited = perfect_keys(&words).len();
         assert_eq!(stats.wpm, round2(credited as f64 / 5.0 / elapsed_minutes));
     }
@@ -1053,14 +1147,6 @@ mod tests {
             key_stat(&breakdown, char::from(last)).map(|stat| stat.misses),
             Some(1)
         );
-        assert_eq!(
-            key_stat(&breakdown, ' '),
-            Some(KeyStat {
-                key: ' ',
-                hits: 8,
-                misses: 1
-            })
-        );
     }
 
     #[test]
@@ -1110,7 +1196,7 @@ mod tests {
 
         let scored = score_late(TestMode::Words10, &keys, &times).expect("valid submission");
 
-        let elapsed_minutes = f64::from(*times.last().expect("non-empty")) / 60_000.0;
+        let elapsed_minutes = scored_minutes(&times);
         let credited = perfect_keys(&words[..9]).len() + 1;
         assert_eq!(
             scored.stats.wpm,
@@ -1191,7 +1277,7 @@ mod tests {
 
         let stats = evaluate_late(TestMode::Words10, &keys, &times).expect("valid submission");
 
-        let elapsed_minutes = f64::from(*times.last().expect("non-empty")) / 60_000.0;
+        let elapsed_minutes = scored_minutes(&times);
         assert_eq!(
             stats.raw_wpm,
             round2(keys.len() as f64 / 5.0 / elapsed_minutes)
@@ -1255,6 +1341,24 @@ mod tests {
         assert_eq!(consistency_of(&keys, &times, 2_600, true), 82.32);
         assert_eq!(consistency_of(&keys, &times, 2_600, false), 100.0);
         assert_eq!(consistency_of(&keys, &times, 2_400, true), 100.0);
+    }
+
+    #[test]
+    fn scored_tail_follows_the_rounded_duration_and_spans_the_raw_time() {
+        // Two keys in the tail; the first two seconds are idle so the tail point is easy to read.
+        let marks = marks("ab", &[2_100, 2_400]);
+
+        // 2,495 ms rounds to 2,500, so the tail is scored and spans 495 ms of raw time.
+        let scored = timeline(&marks, 10, 2_495, true);
+        assert_eq!(scored.len(), 3);
+        assert_eq!(scored[2].raw_wpm, 48.0);
+        assert_eq!(scored[2].wpm, 48.0);
+        // 2,494 ms rounds to 2,490, short of half a second.
+        assert_eq!(timeline(&marks, 10, 2_494, true).len(), 2);
+        // 2,996 ms rounds up to a whole 3 s: no tail point, and the last point runs to 3 s.
+        let rounded_up = timeline(&marks, 10, 2_996, true);
+        assert_eq!(rounded_up.len(), 2);
+        assert_eq!(rounded_up[1].wpm, 40.0);
     }
 
     #[test]

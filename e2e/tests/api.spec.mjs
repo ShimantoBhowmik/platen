@@ -26,6 +26,19 @@ async function submit(request, issued, keys, { name, gaps = humanGaps(keys.lengt
     return request.post("/api/results", { data: { token: issued.token, keys, times, name } });
 }
 
+/** The duration the server scores over: the typing time rounded to the nearest 10 ms. */
+function scoredMs(typingMs) {
+    return Math.floor((typingMs + 5) / 10) * 10;
+}
+
+/**
+ * How many timeline points a word test gets: one per whole second of typing, plus one when the
+ * scored duration puts the last partial second at half a second or more.
+ */
+function timelinePoints(typingMs) {
+    return Math.floor(typingMs / 1000) + (scoredMs(typingMs) % 1000 >= 500 ? 1 : 0);
+}
+
 test("health answers", async ({ request }) => {
     expect((await request.get("/health")).status()).toBe(200);
 });
@@ -60,26 +73,27 @@ test("a typed word test is scored, stored, ranked and single-use", async ({ requ
     const issued = await startTest(request, "words", 10);
     const name = `e2e-${Date.now() % 100000}`;
     const keys = keysWithMistakes(issued.words);
+    const gaps = humanGaps(keys.length);
+    const typingMs = timesFrom(gaps).at(-1);
 
-    const response = await submit(request, issued, keys, { name });
+    const response = await submit(request, issued, keys, { name, gaps });
 
     expect(response.status()).toBe(201);
     const result = await response.json();
     const { stats, breakdown, timeline } = result;
     expect(result.name).toBe(name);
+    expect(stats.elapsed_ms).toBe(scoredMs(typingMs));
     expect(stats.wpm).toBeGreaterThan(0);
     expect(stats.raw_wpm).toBeGreaterThanOrEqual(stats.wpm);
     expect(stats.accuracy).toBeLessThan(100);
-    // Word 2 kept a wrong letter, and the space that commits it wrong is a miss too. Word 4
+    // Word 2 kept a wrong letter; the space after it is still where the text has one. Word 4
     // had a corrected one.
-    expect(stats.incorrect_keystrokes).toBe(3);
+    expect(stats.incorrect_keystrokes).toBe(2);
     expect(breakdown.missed_words).toEqual([
         { expected: issued.words[2], typed: keys.split(" ")[2] },
     ]);
     expect(breakdown.keys.filter((key) => key.misses > 0).length).toBeGreaterThan(0);
-    // One point per scored second: a word test also scores a final half second or more.
-    const points = Math.floor(stats.elapsed_ms / 1000) + (stats.elapsed_ms % 1000 >= 500 ? 1 : 0);
-    expect(timeline).toHaveLength(points);
+    expect(timeline).toHaveLength(timelinePoints(typingMs));
     for (const point of timeline) {
         expect(point.wpm).toBeGreaterThanOrEqual(0);
         expect(Number.isInteger(point.raw_wpm)).toBe(true);

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-12T05:38:53.000Z",
+  "generatedAt": "2026-10-12T12:00:00.000Z",
   "title": "Design System: platen",
   "extensions": {
     "colorMeta": {
@@ -602,7 +602,7 @@
     "typographyMeta": {
       "sheet-type": {
         "displayName": "Sheet Type",
-        "purpose": "Letters typed right on the current line; drawing units on a 12.5-unit pitch cell."
+        "purpose": "Letters typed right on the current line; drawing units on a 12.5-unit pitch cell, 80 cells across the fixed sheet."
       },
       "sheet-copy": {
         "displayName": "Sheet Copy",
@@ -614,15 +614,15 @@
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Rail, group names and chips; uppercase, tabular numerals."
+        "purpose": "Segments in the bar; lower case, tabular numerals."
       },
       "brand": {
         "displayName": "Brand",
-        "purpose": "The platen name at the left of the rail; uppercase."
+        "purpose": "\"platen\" at the left of the bar, in Courier Prime; lower case."
       },
       "caption": {
         "displayName": "Caption",
-        "purpose": "Plate corner title and hint, focus prompt, and the labels over Fig 2's values and lists; uppercase. Fig 1 and Fig 2 use it in sentence case at 0.04em."
+        "purpose": "The plate's bottom-left hint, the focus prompt, and the labels over each value and list on the result plate; uppercase."
       },
       "readout": {
         "displayName": "Readout",
@@ -638,7 +638,7 @@
       },
       "result-figure": {
         "displayName": "Result Figure",
-        "purpose": "wpm and acc on Fig 2; scales with the card in cqw."
+        "purpose": "wpm and acc on the result plate; scales with the card in cqw."
       },
       "countdown": {
         "displayName": "Countdown",
@@ -650,7 +650,7 @@
       },
       "stat-value": {
         "displayName": "Stat Value",
-        "purpose": "The five values in Fig 2's stats row."
+        "purpose": "The five values in the result plate's stats row."
       },
       "stat-value-phone": {
         "displayName": "Stat Value (phone)",
@@ -676,9 +676,9 @@
         "purpose": "The card's hairline frame; also the ring of the weak-key discs and the chart's hover tip."
       },
       {
-        "name": "chip-ring",
+        "name": "control-ring",
         "value": "0 0 0 1px var(--anatomy-faint)",
-        "purpose": "Chip at rest; mid on hover, hi when pressed."
+        "purpose": "Segmented control outline; its pressed segment takes 0 0 0 1px var(--anatomy-lo)."
       },
       {
         "name": "lift",
@@ -695,17 +695,17 @@
       {
         "name": "anatomy-ease",
         "value": "cubic-bezier(.32,.72,0,1)",
-        "purpose": "Chip state changes (160ms), line feed (260ms), figure dim (240ms)."
+        "purpose": "Segment and icon state changes (160ms), line feed (260ms), figure dim (240ms)."
       },
       {
-        "name": "carriage-return",
+        "name": "carrier-return",
         "value": "380ms cubic-bezier(0.2, 0.8, 0.2, 1)",
-        "purpose": "Carriage glide back to the left margin."
+        "purpose": "Carrier glides back to the left margin; on phones the cropped drawing glides with it."
       },
       {
-        "name": "escapement",
+        "name": "type-element-step",
         "value": "none",
-        "purpose": "Carriage steps one pitch cell per key with no transition."
+        "purpose": "The carrier steps one pitch cell per key with no transition."
       },
       {
         "name": "key-down",
@@ -713,9 +713,9 @@
         "purpose": "Key sinks."
       },
       {
-        "name": "typebar-strike",
-        "value": "34ms (two frames)",
-        "purpose": "Typebar held against the platen."
+        "name": "ball-strike",
+        "value": "34ms (two frames, --bs and --vl)",
+        "purpose": "Type element moves into the platen and the ribbon guide lifts."
       },
       {
         "name": "bell-hammer",
@@ -725,7 +725,7 @@
       {
         "name": "result-fade",
         "value": "240ms cubic-bezier(.32,.72,0,1)",
-        "purpose": "Fig 2 fades in when the server's result arrives."
+        "purpose": "The result plate fades in when the server's result arrives."
       },
       {
         "name": "chart-trace",
@@ -745,7 +745,7 @@
       {
         "name": "reduced-motion",
         "value": "transition: none; animation: none",
-        "purpose": "Machine holds still; chips and countdown change instantly; Fig 2 and its chart appear finished."
+        "purpose": "Machine holds still; segments, icons and countdown change instantly; the result plate and its chart appear finished."
       }
     ],
     "breakpoints": [
@@ -755,38 +755,42 @@
       },
       {
         "name": "phone",
-        "value": "720px"
-      },
-      {
-        "name": "rail-wrap",
-        "value": "max-width 910px or max-height 760px (column reserves 252px instead of 208px)"
+        "value": "720px (bar wraps to two rows; crop follows the type element, print point 35% from left)"
       }
     ]
   },
   "components": [
     {
-      "name": "Chip",
+      "name": "Segmented Control",
       "kind": "chip",
-      "refersTo": "chip",
-      "description": "Every control: test lengths, sound, theme, new sheet. Pressed state shows the selection.",
-      "html": "<div class=\"ds-rail\"><span class=\"ds-group\">time</span><button class=\"ds-chip\">15s</button><button class=\"ds-chip\" aria-pressed=\"true\">30s</button><button class=\"ds-chip\">60s</button></div>",
-      "css": ".ds-rail{display:flex;align-items:center;gap:4px;padding:12px;background:#0b0b0b;font:12px ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;color:#a3a3a3}.ds-group{margin-right:6px}.ds-chip{appearance:none;border:0;margin:0;padding:6px 10px;border-radius:2px;background:transparent;color:#a3a3a3;box-shadow:0 0 0 1px #2a2a2a;font:inherit;letter-spacing:inherit;text-transform:inherit;font-variant-numeric:tabular-nums;cursor:pointer;transition:color 160ms cubic-bezier(.32,.72,0,1),box-shadow 160ms cubic-bezier(.32,.72,0,1),background 160ms cubic-bezier(.32,.72,0,1)}.ds-chip:hover{color:#e6e6e6;box-shadow:0 0 0 1px #6a6a6a}.ds-chip[aria-pressed=\"true\"]{color:#e6e6e6;background:#1b1b1b;box-shadow:0 0 0 1px #d4d4d4}.ds-chip:focus-visible{outline:1px solid #d4d4d4;outline-offset:3px}.ds-chip:active{transform:translateY(1px)}"
+      "refersTo": "segment",
+      "description": "Test kind and length: a ringed group of 2px segments; the pressed segment shows the choice.",
+      "html": "<div style=\"display:flex;gap:10px;padding:12px;background:#0b0b0b\"><div class=\"ds-seg\" role=\"group\" aria-label=\"Test kind\"><button class=\"ds-seg-item\" aria-pressed=\"true\">time</button><button class=\"ds-seg-item\" aria-pressed=\"false\">words</button></div><div class=\"ds-seg\" role=\"group\" aria-label=\"Seconds\"><button class=\"ds-seg-item\" aria-pressed=\"false\">15s</button><button class=\"ds-seg-item\" aria-pressed=\"true\">30s</button><button class=\"ds-seg-item\" aria-pressed=\"false\">60s</button><button class=\"ds-seg-item\" aria-pressed=\"false\">120s</button></div></div>",
+      "css": ".ds-seg{display:inline-flex;gap:2px;padding:3px;border-radius:4px;box-shadow:0 0 0 1px #2a2a2a;background:#0b0b0b}.ds-seg-item{appearance:none;border:0;margin:0;min-width:44px;padding:7px 12px;border-radius:2px;background:transparent;color:#a3a3a3;font:13px/1 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.02em;font-variant-numeric:tabular-nums;cursor:pointer;transition:color 160ms cubic-bezier(.32,.72,0,1),box-shadow 160ms cubic-bezier(.32,.72,0,1),background 160ms cubic-bezier(.32,.72,0,1)}.ds-seg-item:hover{color:#e6e6e6}.ds-seg-item[aria-pressed=\"true\"]{color:#e6e6e6;background:#1b1b1b;box-shadow:0 0 0 1px #3e3e3e}.ds-seg-item:focus-visible{outline:1px solid #d4d4d4;outline-offset:2px}.ds-seg-item:active{transform:translateY(1px)}"
     },
     {
-      "name": "Rail",
+      "name": "Icon Button",
+      "kind": "button",
+      "refersTo": "icon-button",
+      "description": "Sound, theme and new sheet: 36px square tools with a 20px stroked icon; face fill on hover.",
+      "html": "<div class=\"ds-tools\"><button class=\"ds-icon\" aria-pressed=\"true\" aria-label=\"Typewriter sound\" title=\"Sound on\"><svg viewBox=\"0 0 20 20\"><path d=\"M3.5 7.5h3l4.5-3.5v12l-4.5-3.5h-3z\"/><path d=\"M13.6 7.6a3.4 3.4 0 0 1 0 4.8M15.8 5.4a6.5 6.5 0 0 1 0 9.2\"/></svg></button><button class=\"ds-icon\" aria-pressed=\"false\" aria-label=\"Light theme\" title=\"Dark theme\"><svg viewBox=\"0 0 20 20\"><path d=\"M15.8 12.4A6.3 6.3 0 0 1 7.6 4.2a6.3 6.3 0 1 0 8.2 8.2z\"/></svg></button><button class=\"ds-icon\" aria-label=\"New sheet\" title=\"New sheet\"><svg viewBox=\"0 0 20 20\"><path d=\"M4.6 8.2A5.8 5.8 0 1 1 4.4 12\"/><path d=\"M4.2 3.8v4.6h4.6\"/></svg></button></div>",
+      "css": ".ds-tools{display:inline-flex;gap:2px;padding:8px;background:#0b0b0b}.ds-icon{appearance:none;border:0;margin:0;display:grid;place-items:center;width:36px;height:36px;padding:0;border-radius:4px;background:transparent;color:#a3a3a3;cursor:pointer;transition:color 160ms cubic-bezier(.32,.72,0,1),background 160ms cubic-bezier(.32,.72,0,1)}.ds-icon:hover{color:#e6e6e6;background:#1b1b1b}.ds-icon:focus-visible{outline:1px solid #d4d4d4;outline-offset:2px}.ds-icon:active{transform:translateY(1px)}.ds-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}"
+    },
+    {
+      "name": "Bar",
       "kind": "nav",
-      "refersTo": "chip",
-      "description": "Brand, chip groups and tools in one wrapping row above the card.",
-      "html": "<header class=\"ds-bar\"><span class=\"ds-brand\">platen</span><span class=\"ds-name\">words</span><button class=\"ds-c\">10</button><button class=\"ds-c\" aria-pressed=\"true\">25</button><span class=\"ds-tools\"><button class=\"ds-c\" aria-pressed=\"true\">sound</button><button class=\"ds-c\">light</button></span></header>",
-      "css": ".ds-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 4px;padding:16px;background:#0b0b0b;color:#a3a3a3;font:12px ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase}.ds-brand{color:#e6e6e6;letter-spacing:.14em;margin-right:24px}.ds-name{margin-right:6px}.ds-tools{display:flex;gap:4px;margin-left:auto}.ds-c{appearance:none;border:0;padding:6px 10px;border-radius:2px;background:transparent;color:#a3a3a3;box-shadow:0 0 0 1px #2a2a2a;font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}.ds-c:hover{color:#e6e6e6;box-shadow:0 0 0 1px #6a6a6a}.ds-c[aria-pressed=\"true\"]{color:#e6e6e6;background:#1b1b1b;box-shadow:0 0 0 1px #d4d4d4}.ds-c:focus-visible{outline:1px solid #d4d4d4;outline-offset:3px}"
+      "refersTo": "segmented",
+      "description": "Brand at left, the two segmented controls centred, icon tools at right; wraps to two rows on phones.",
+      "html": "<header class=\"ds-bar\"><span class=\"ds-brand\">platen</span><nav class=\"ds-modes\"><div class=\"ds-seg\"><button class=\"ds-seg-item\" aria-pressed=\"false\">time</button><button class=\"ds-seg-item\" aria-pressed=\"true\">words</button></div><div class=\"ds-seg\"><button class=\"ds-seg-item\" aria-pressed=\"false\">10</button><button class=\"ds-seg-item\" aria-pressed=\"true\">25</button><button class=\"ds-seg-item\" aria-pressed=\"false\">50</button><button class=\"ds-seg-item\" aria-pressed=\"false\">100</button></div></nav><div class=\"ds-tools\"><button class=\"ds-icon\" aria-label=\"New sheet\" title=\"New sheet\"><svg viewBox=\"0 0 20 20\"><path d=\"M4.6 8.2A5.8 5.8 0 1 1 4.4 12\"/><path d=\"M4.2 3.8v4.6h4.6\"/></svg></button></div></header>",
+      "css": ".ds-bar{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px 24px;padding:16px;background:#0b0b0b}.ds-brand{font:700 22px/1 \"Courier Prime\",\"Courier New\",Courier,monospace;letter-spacing:-.01em;color:#e6e6e6}.ds-modes{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.ds-bar .ds-tools{display:flex;gap:2px;justify-self:end}.ds-seg{display:inline-flex;gap:2px;padding:3px;border-radius:4px;box-shadow:0 0 0 1px #2a2a2a;}.ds-seg-item{appearance:none;border:0;margin:0;min-width:44px;padding:7px 12px;border-radius:2px;background:transparent;color:#a3a3a3;font:13px/1 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.02em;font-variant-numeric:tabular-nums;cursor:pointer;transition:color 160ms cubic-bezier(.32,.72,0,1),box-shadow 160ms cubic-bezier(.32,.72,0,1),background 160ms cubic-bezier(.32,.72,0,1)}.ds-seg-item:hover{color:#e6e6e6}.ds-seg-item[aria-pressed=\"true\"]{color:#e6e6e6;background:#1b1b1b;box-shadow:0 0 0 1px #3e3e3e}.ds-seg-item:focus-visible{outline:1px solid #d4d4d4;outline-offset:2px}.ds-seg-item:active{transform:translateY(1px)}.ds-icon{appearance:none;border:0;margin:0;display:grid;place-items:center;width:36px;height:36px;padding:0;border-radius:4px;background:transparent;color:#a3a3a3;cursor:pointer;transition:color 160ms cubic-bezier(.32,.72,0,1),background 160ms cubic-bezier(.32,.72,0,1)}.ds-icon:hover{color:#e6e6e6;background:#1b1b1b}.ds-icon:focus-visible{outline:1px solid #d4d4d4;outline-offset:2px}.ds-icon:active{transform:translateY(1px)}.ds-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}"
     },
     {
       "name": "Plate",
       "kind": "card",
       "refersTo": "plate",
-      "description": "Square card with a hairline frame and four corner captions around the figure; the readout is a status.",
-      "html": "<div class=\"ds-plate\"><span class=\"ds-k ds-fig\">Fig 1</span><span class=\"ds-k ds-title\">typewriter · 30s test</span><span class=\"ds-k ds-hint\">esc for a fresh sheet</span><span class=\"ds-k ds-read\">typing</span></div>",
-      "css": ".ds-plate{position:relative;height:220px;background:#131313;box-shadow:0 0 0 1px #6a6a6a;border-radius:0;font-family:ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;color:#a3a3a3}.ds-k{position:absolute;font-size:12px;line-height:1;letter-spacing:.04em;white-space:nowrap}.ds-fig{top:18px;left:20px}.ds-title{top:18px;right:20px;text-transform:uppercase;letter-spacing:.1em}.ds-hint{bottom:18px;left:20px;text-transform:uppercase;letter-spacing:.1em}.ds-read{bottom:18px;right:20px;font-size:13px;font-variant-numeric:tabular-nums}"
+      "description": "Square card with a hairline frame; only the hint (bottom left) and the readout status (bottom right) sit in its corners.",
+      "html": "<div class=\"ds-plate\"><button class=\"ds-k ds-hint\">Type to begin · Tab + Enter restarts</button><span class=\"ds-k ds-read\">typing</span></div>",
+      "css": ".ds-plate{position:relative;height:220px;background:#131313;box-shadow:0 0 0 1px #6a6a6a;border-radius:0;font-family:ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;color:#a3a3a3}.ds-k{position:absolute;bottom:18px;line-height:1;white-space:nowrap}.ds-hint{left:20px;padding:0;border:0;background:none;color:inherit;font:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:color 160ms cubic-bezier(.32,.72,0,1)}.ds-hint:hover,.ds-hint:focus-visible{color:#e6e6e6}.ds-hint:focus-visible{outline:1px solid #d4d4d4;outline-offset:4px}.ds-read{right:20px;font-size:13px;letter-spacing:.04em;font-variant-numeric:tabular-nums}"
     },
     {
       "name": "Sheet Ink",
@@ -797,10 +801,18 @@
       "css": ".ds-sheet{padding:20px 24px;background:#e8e6e0;box-shadow:0 0 0 1px #8e8b84;font:21px \"Courier Prime\",\"Courier New\",Courier,monospace;white-space:pre}.ds-hit{color:#161618;font-weight:700}.ds-copy{color:#5f5c56;font-weight:400}.ds-miss{color:#b02621;font-weight:700;position:absolute;left:0}.ds-cell{position:relative;display:inline-block}"
     },
     {
+      "name": "Type Element",
+      "kind": "custom",
+      "refersTo": "lit",
+      "description": "Front view: the typeball on its carrier under the fixed sheet, with the ribbon guide and the lit strike mark; the carrier steps one cell per key.",
+      "html": "<div class=\"ds-machine\"><svg viewBox=\"0 0 320 150\" width=\"320\" height=\"150\"><rect class=\"sheet\" x=\"40\" y=\"8\" width=\"240\" height=\"70\"/><text class=\"hit\" x=\"56\" y=\"60\">the quick br</text><text class=\"copy\" x=\"203\" y=\"60\">own</text><rect class=\"rail\" x=\"20\" y=\"112\" width=\"280\" height=\"4\"/><rect class=\"rail\" x=\"20\" y=\"124\" width=\"280\" height=\"4\"/><g class=\"carrier\"><rect class=\"fill\" x=\"182\" y=\"98\" width=\"44\" height=\"34\" rx=\"2\"/><rect class=\"guide\" x=\"190\" y=\"74\" width=\"28\" height=\"10\"/><rect class=\"red\" x=\"191\" y=\"75\" width=\"26\" height=\"4\"/><rect class=\"blk\" x=\"191\" y=\"79\" width=\"26\" height=\"4\"/><circle class=\"ball\" cx=\"204\" cy=\"96\" r=\"13\"/><path class=\"mark\" d=\"M204 70l-3.2-4.6h6.4z\"/></g></svg></div>",
+      "css": ".ds-machine{padding:16px;background:#131313}.ds-machine svg{display:block}.ds-machine .sheet{fill:#e8e6e0;stroke:#8e8b84;stroke-width:.6}.ds-machine text{font:21px \"Courier Prime\",\"Courier New\",Courier,monospace}.ds-machine .hit{fill:#161618;font-weight:700}.ds-machine .copy{fill:#5f5c56}.ds-machine .rail{fill:#181818;stroke:#3e3e3e;stroke-width:.6}.ds-machine .fill{fill:#1c1c1c;stroke:#6a6a6a;stroke-width:.6}.ds-machine .guide{fill:#1b1b1b;stroke:#3e3e3e;stroke-width:.6}.ds-machine .red{fill:#b02621}.ds-machine .blk{fill:#050506}.ds-machine .ball{fill:#1b1b1b;stroke:#d4d4d4;stroke-width:.6}.ds-machine .mark{fill:#ffffff}"
+    },
+    {
       "name": "Legend",
       "kind": "custom",
       "refersTo": "legend-swatch",
-      "description": "Keys under the card: ink keys on Fig 1, the chart's encoding on Fig 2.",
+      "description": "Keys under the card: ink keys on the sheet, the chart's encoding on the result plate.",
       "html": "<div class=\"ds-legend\"><span class=\"ds-key\"><i class=\"ds-sw ds-hit\"></i>Right: black ribbon</span><span class=\"ds-key\"><i class=\"ds-sw ds-miss\"></i>Wrong: red ribbon over the copy</span><span class=\"ds-key\"><i class=\"ds-sw ds-copy\"></i>Still to type: faint copy</span></div><div class=\"ds-legend\"><span class=\"ds-key\"><i class=\"ds-sw ds-wpm\"></i>wpm so far</span><span class=\"ds-key\"><i class=\"ds-sw ds-raw\"></i>raw wpm of each second</span><span class=\"ds-key\"><i class=\"ds-sw ds-err\"></i>Wrong keys per second, right scale</span></div>",
       "css": ".ds-legend{display:flex;flex-wrap:wrap;gap:6px 18px;padding:12px;background:#0b0b0b;color:#a3a3a3;font:12px/1.55 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.04em}.ds-key{display:inline-flex;align-items:center;gap:7px}.ds-sw{width:18px;height:10px;border-radius:1px;box-shadow:0 0 0 1px #3e3e3e}.ds-sw.ds-hit{background:#161618;box-shadow:0 0 0 1px #8e8b84}.ds-sw.ds-miss{background:#b02621}.ds-sw.ds-copy{background:#5f5c56}.ds-sw.ds-wpm,.ds-sw.ds-raw{height:2px;box-shadow:none}.ds-sw.ds-wpm{background:#e6e6e6}.ds-sw.ds-raw{background:#6a6a6a}.ds-sw.ds-err{width:10px;margin:0 4px;box-shadow:none;background:linear-gradient(45deg,transparent 42%,#e5554c 42%,#e5554c 58%,transparent 58%),linear-gradient(-45deg,transparent 42%,#e5554c 42%,#e5554c 58%,transparent 58%)}"
     },
@@ -824,7 +836,7 @@
       "name": "Result Figures",
       "kind": "custom",
       "refersTo": "result-figure",
-      "description": "wpm and acc on Fig 2, in the machine's face.",
+      "description": "wpm and acc on the result plate, in the machine's face.",
       "html": "<dl class=\"ds-fig\"><div><dt>wpm</dt><dd>65</dd></div><div><dt>acc</dt><dd>93<span class=\"ds-u\">%</span></dd></div></dl>",
       "css": ".ds-fig{display:flex;gap:36px;margin:0;padding:24px;background:#131313}.ds-fig dt{font:400 12px/1 ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:#a3a3a3;margin-bottom:8px}.ds-fig dd{margin:0;font:700 88px/.85 \"Courier Prime\",\"Courier New\",Courier,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:#e6e6e6}.ds-u{font-size:.5em;letter-spacing:0;color:#a3a3a3}"
     },
@@ -863,13 +875,13 @@
   ],
   "narrative": {
     "northStar": "The Anatomy Plate",
-    "overview": "\n**Creative North Star: \"The Anatomy Plate\"**\n\nOne typewriter, drawn as a technical figure on a framed card, is the whole interface. The sheet rolled into its carriage is the test: the copy is printed faint on the paper, the learner types over it, and the machine answers each key with a stepped mechanical response. Everything outside the figure is set like a plate in a manual: a hairline frame, four corner captions, a legend under the card, and a single rail of controls above it that wears the same caption type. When the server returns the score, the same card turns to Fig 2, the result plate: the machine's figures, a hairline speed chart, a stats row and what to practise next.\n\nThe world is monochrome. The bench, card and machine are four-tone grey solids with 0.6px hairline outlines, screws drawn as dots, and ruler ticks cut to the type pitch. Colour exists only as ribbon ink: a black ribbon for correct letters and the red half of a bichrome ribbon for misses, on the paper and, lifted for contrast, on the result plate. The only lit part of the drawing is the strike-point mark. Dark (charcoal bench) and light (paper-white bench) are the same drawing with each tone remapped; the theme follows the system preference and has a toggle.",
+    "overview": "\n**Creative North Star: \"The Anatomy Plate\"**\n\nOne typewriter, drawn as a technical figure on a framed card, is the whole interface. It is a wide typeball electric seen straight from the front: the sheet stays still across the full width of the platen and a small type element travels along it, so a whole line of eleven words stays in view at a readable size and on a level baseline. The copy is printed faint on the paper, the learner types over it, and the machine answers each key with a stepped mechanical response. Around the figure sit a hairline frame, two bottom captions, a legend under the card, and a quiet bar above it: the brand, two segmented controls for the test length and three icon tools. When the server returns the score, the same card shows the result plate: the machine's figures, a hairline speed chart, a stats row and what to practise next.\n\nThe world is monochrome. The bench, card and machine are four-tone grey solids with 0.6px hairline outlines, screws drawn as dots, and ruler ticks cut to the type pitch. Colour exists only as ribbon ink: a black ribbon for correct letters and the red half of a bichrome ribbon for misses, on the paper and, lifted for contrast, on the result plate. The only lit part of the drawing is the strike-point mark. Dark (charcoal bench) and light (paper-white bench) are the same drawing with each tone remapped; the theme follows the system preference and has a toggle.\n\nDensity is low and fixed. The card holds a 2.2:1 stage inside whatever height the bar and legend leave, so the machine never scrolls on desktop, and the result plate fills the same stage so nothing jumps when it swaps in. Motion is mechanical, not decorative: the type element jumps one cell with no easing, a strike holds for two frames, and only the return and the line feed glide. The result chart is drawn once like a pen trace.\n",
     "keyCharacteristics": [
-      "One isometric anatomy figure owns the screen; the paper is the test surface.",
+      "One anatomy figure, seen from the front, owns the screen; the paper is the test surface and holds eleven words a line.",
       "Four-tone monochrome solids, 0.6px hairlines, dots and ticks; no hue outside the ribbon's ink.",
       "One lit part: the strike-point mark.",
-      "Courier Prime on the paper and for the machine's figures; small tracked system mono for every caption, control and axis.",
-      "Square plate, near-square 2px chips, round 17px key discs, flat surfaces.",
+      "Courier Prime on the paper, for the machine's figures and for the brand; small system mono for every caption, control and axis.",
+      "Square plate, 4px controls with 2px segments, round 17px key discs, flat surfaces.",
       "Stepped motion; reduced motion holds the machine still and draws the chart at once."
     ],
     "rules": [
@@ -890,12 +902,12 @@
       },
       {
         "name": "The Pitch Cell Rule",
-        "body": "Every character on paper sits centred in a fixed pitch cell (12.5 units at 21-unit type, 26 columns, wrapped at 23). The carriage scale carries one tick per cell. Proportional text never appears on the sheet.",
+        "body": "Every character on paper sits centred in a fixed pitch cell (12.5 units at 21-unit type, 80 columns, wrapped at eleven words or 76 cells, whichever comes first). The scale bar carries one tick per cell. Proportional text never appears on the sheet.",
         "section": "typography"
       },
       {
         "name": "The Two Faces Rule",
-        "body": "Courier Prime for paper and the machine's figures: the sheet, the copy holder, the countdown, the result figures, the stat values, the key discs and the typed missed words, always at 700 off the paper. System mono for everything else: captions, controls, the readout, axis labels, notes. No third family is shown; the sans stack on the page root is a fallback that no visible text uses.",
+        "body": "Courier Prime for paper, the machine's figures and the brand: the sheet, the copy holder, the countdown, the result figures, the stat values, the key discs, the typed missed words and \"platen\", always at 700 off the paper. System mono for everything else: captions, controls, the readout, axis labels, notes. No third family is shown; the sans stack on the page root is a fallback that no visible text uses.",
         "section": "typography"
       },
       {
@@ -910,18 +922,18 @@
       }
     ],
     "dos": [
-      "Do put every reading surface of the test on paper inside the drawing, set in Courier Prime on the pitch grid; put results on Fig 2 inside the same card.",
-      "Do set controls as chips in the rail, using label type and the chip's ring states; show binary tools with `aria-pressed`.",
+      "Do put every reading surface of the test on paper inside the drawing, set in Courier Prime on the pitch grid, with the baseline level; put results on the result plate inside the same card.",
+      "Do set the test length as segmented controls and the tools as icon buttons in the bar; show binary tools with `aria-pressed`.",
       "Do declare every new colour as a dark and light pair on the same token name.",
       "Do keep machine motion stepped: one cell per key, two-frame strikes, glides only for the return and the line feed. Result motion is one pen trace and one fade. Nothing moves under reduced motion.",
-      "Do keep the plate's captions to the four corners: figure number, object and test, hint, status readout.",
+      "Do keep the plate's captions to the two bottom corners: hint and status readout. No figure numbers or titles.",
       "Do keep chart marks off the wpm gridlines by choosing the error axis top, not by nudging marks."
     ],
     "donts": [
       "Don't use hue anywhere but ribbon ink: `ribbon-red` on the sheet, `ribbon-red-plate` for wrong keys on the card. The kit's red, green and blue line tones stay out.",
       "Don't paint a second part of the figure with `lit`; the strike point is the only lit part.",
-      "Don't add drop shadows to cards, chips, discs or the tip; depth belongs to the drawing.",
-      "Don't set proportional or sans text on the paper, or Courier Prime anywhere but the paper and the machine's figures; captions, controls and axis labels stay in system mono.",
+      "Don't add drop shadows to cards, controls, discs or the tip; depth belongs to the drawing.",
+      "Don't set proportional or sans text on the paper, or Courier Prime anywhere but the paper, the machine's figures and the brand; captions, controls and axis labels stay in system mono.",
       "Don't show live wpm or accuracy during the test; the countdown is the only live figure.",
       "Don't use the kit's `muted` grey (#6e6e6e on the card) for text; this build raises captions and legend to `text` for contrast."
     ]

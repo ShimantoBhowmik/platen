@@ -56,3 +56,10 @@ words left wrong. Large figures are set in Courier Prime 700 as the machine's fi
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review,
 the verdict, DESIGN.md, and every shipping raster carrying its provenance
+
+Later, by user decision (2026-10-12): a line holds up to eleven words. A sliding carriage could
+not show that at a readable size, so the machine became a wide typeball electric seen straight
+from the front: the sheet stays still across the platen and a type element travels along it.
+The plate drops "Fig 1/Fig 2" and the top-right title. The rail of uppercase chips became a
+quiet bar: the brand in Courier Prime, a time/words segmented control with the four lengths of
+the chosen kind, and icon buttons for sound, theme and a new sheet.

@@ -3,7 +3,6 @@
 //! The build writes static SVG layers and the camera numbers the app needs to move parts. The
 //! file is embedded at compile time and parsed once.
 
-use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use serde::Deserialize;
@@ -61,38 +60,42 @@ pub struct CopyLayout {
 pub struct Figure {
     /// ViewBox width.
     pub width: f64,
-    /// ViewBox height.
+    /// ViewBox height, sized by the build to the drawing.
     pub height: f64,
     /// Accessible description of the drawing.
     pub label: String,
-    /// Bench, body and rear housing.
+    /// Bench, body, rear housing and copy holder.
     pub back: String,
     /// The bell hammer, which swings at the end of a line.
     pub hammer: String,
-    /// Carriage parts behind the sheet.
-    pub carriage_back: String,
+    /// The platen, its knobs and end plates, and the scale bar.
+    pub platen: String,
     /// The sheet of paper.
     pub sheet: String,
-    /// Carriage parts in front of the sheet: the paper bail.
-    pub carriage_front: String,
-    /// Basket, spools, ribbon and card holder.
-    pub front: String,
-    /// The ribbon vibrator, which lifts on each strike.
+    /// The paper bail, in front of the sheet.
+    pub bail: String,
+    /// The two rails the carrier rides on.
+    pub rails: String,
+    /// The carrier's fixed parts: block, ribbon cartridge, ribbon runs and card holder.
+    pub carrier: String,
+    /// The ribbon guide, which lifts on each strike.
     pub vibrator: String,
-    /// The lit strike mark.
+    /// The lit strike mark on the card holder.
     pub mark: String,
+    /// The type element on its post, which tilts into the platen on each strike.
+    pub ball: String,
     /// Keys, already in painter's order.
     pub keys: Vec<Key>,
     /// The space bar.
     pub space: String,
-    /// A struck typebar per character.
-    pub strikes: HashMap<char, String>,
-    /// Screen offset of the carriage for one world unit along x.
-    pub carriage_step: ScreenVec,
+    /// Screen offset of the carrier for one world unit along x.
+    pub carrier_step: ScreenVec,
     /// Screen offset of a pressed key.
     pub key_down: ScreenVec,
-    /// Screen offset of the lifted vibrator.
+    /// Screen offset of the lifted ribbon guide.
     pub vibrator_lift: ScreenVec,
+    /// Screen offset of the type element as it strikes.
+    pub ball_strike: ScreenVec,
     /// Screen offset of the swung bell hammer.
     pub hammer_swing: ScreenVec,
     /// SVG transform onto the sheet's plane.
@@ -103,20 +106,26 @@ pub struct Figure {
     pub copy_matrix: String,
     /// Text layout on the copy holder card.
     pub copy: CopyLayout,
-    /// Where phones crop the drawing, as a fraction of the viewBox: the left edge of the
-    /// copy and the height of the print line, so every line reads from its start.
-    pub crop_at: [f64; 2],
+    /// The print point with the carrier at x = 0, as a fraction of the viewBox. Phones crop
+    /// the drawing around it as the carrier travels.
+    pub strike_at: [f64; 2],
 }
 
 impl Figure {
-    /// World offset along x that puts column `col` at the strike point.
-    pub fn carriage_dx(&self, col: usize) -> f64 {
-        -(self.text.x0 + (col as f64 + 0.5) * self.text.cell)
-    }
-
-    /// Centre of column `col` on the sheet, in plane coordinates.
+    /// Centre of column `col` on the sheet, in plane coordinates. It is also how far the
+    /// carrier travels along x to print in that column.
     pub fn col_x(&self, col: usize) -> f64 {
         self.text.x0 + (col as f64 + 0.5) * self.text.cell
+    }
+
+    /// The print point over column `col`, as a fraction of the viewBox.
+    pub fn strike_point(&self, col: usize) -> [f64; 2] {
+        let [sx, sy] = self.carrier_step;
+        let travel = self.col_x(col);
+        [
+            self.strike_at[0] + sx * travel / self.width,
+            self.strike_at[1] + sy * travel / self.height,
+        ]
     }
 
     /// The key drawn for a typed character, if the keyboard has one.
@@ -145,18 +154,18 @@ mod tests {
     fn figure_parses_and_has_every_letter() {
         for letter in 'a'..='z' {
             assert!(FIGURE.key_index(letter).is_some(), "missing key {letter}");
-            assert!(
-                FIGURE.strikes.contains_key(&letter),
-                "missing typebar {letter}"
-            );
         }
     }
 
     #[test]
-    fn carriage_centres_each_column_on_the_strike_point() {
-        let first = FIGURE.carriage_dx(0);
-        let second = FIGURE.carriage_dx(1);
-        assert!((first - second - FIGURE.text.cell).abs() < 1e-9);
-        assert!((FIGURE.col_x(4) + FIGURE.carriage_dx(4)).abs() < 1e-9);
+    fn strike_point_steps_one_cell_per_column_and_stays_on_the_drawing() {
+        let first = FIGURE.strike_point(0);
+        let second = FIGURE.strike_point(1);
+        let step = (second[0] - first[0]) * FIGURE.width;
+        assert!((step - FIGURE.carrier_step[0] * FIGURE.text.cell).abs() < 1e-9);
+        let last = FIGURE.strike_point(FIGURE.text.cols - 1);
+        for point in [first, last] {
+            assert!((0.0..=1.0).contains(&point[0]) && (0.0..=1.0).contains(&point[1]));
+        }
     }
 }

@@ -30,11 +30,30 @@ impl SplitMix64 {
     fn below(&mut self, bound: usize) -> usize {
         ((u128::from(self.next_u64()) * bound as u128) >> 64) as usize
     }
+
+    /// Uniform index in `0..bound` that is none of the `excluded` indices.
+    ///
+    /// It draws from the allowed indices only, then shifts the draw past each excluded index
+    /// in ascending order, so no retry loop is needed. The `Some` entries must be distinct and
+    /// below `bound`. `None` entries exclude nothing.
+    fn below_excluding(&mut self, bound: usize, mut excluded: [Option<usize>; 2]) -> usize {
+        // `Option` orders `None` before every `Some`, so sorting puts the indices to skip last,
+        // in ascending order. `.flatten()` then iterates over only the `Some` values.
+        excluded.sort_unstable();
+        let allowed = bound - excluded.iter().flatten().count();
+        excluded
+            .iter()
+            .flatten()
+            .fold(self.below(allowed), |index, &skip| {
+                index + usize::from(index >= skip)
+            })
+    }
 }
 
 /// Generates the words for a test.
 ///
-/// The same `seed` and `count` always produce the same words. No word appears twice in a row.
+/// The same `seed` and `count` always produce the same words. A word never repeats either of
+/// the two words before it, so the text has no "the the" or "of the of" stutters.
 ///
 /// # Arguments
 ///
@@ -55,13 +74,12 @@ pub fn generate(seed: u64, count: usize) -> Vec<&'static str> {
     let list = &**ENGLISH;
     let mut rng = SplitMix64(seed);
     let mut words = Vec::with_capacity(count);
-    let mut previous = rng.below(list.len());
+    // List indices of the last word and the one before it; `None` until they exist.
+    let mut recent: [Option<usize>; 2] = [None, None];
     for _ in 0..count {
-        words.push(list[previous]);
-        // Draw from the other `len - 1` words and skip over the previous index, so a repeat is
-        // impossible without a retry loop.
-        let next = rng.below(list.len() - 1);
-        previous = next + usize::from(next >= previous);
+        let index = rng.below_excluding(list.len(), recent);
+        words.push(list[index]);
+        recent = [recent[1], Some(index)];
     }
     words
 }
@@ -75,12 +93,17 @@ mod tests {
         let mut sorted = ENGLISH.to_vec();
         sorted.sort_unstable();
         sorted.dedup();
-        assert_eq!(sorted.len(), 1_000);
+        assert_eq!(sorted.len(), 200);
         assert!(
             ENGLISH
                 .iter()
                 .all(|word| !word.is_empty() && word.bytes().all(|byte| byte.is_ascii_lowercase()))
         );
+    }
+
+    #[test]
+    fn word_list_holds_only_short_words() {
+        assert!(ENGLISH.iter().all(|word| word.len() <= 8));
     }
 
     #[test]
@@ -95,16 +118,41 @@ mod tests {
 
     #[test]
     fn sequence_is_pinned_across_releases() {
-        assert_eq!(
-            generate(0, 5),
-            ["response", "buy", "or", "section", "really"]
+        assert_eq!(generate(0, 5), ["without", "any", "in", "second", "by"]);
+    }
+
+    #[test]
+    fn never_repeats_either_of_the_two_previous_words() {
+        let words = generate(123, 10_000);
+        assert!(
+            words
+                .windows(3)
+                .all(|run| run[0] != run[1] && run[0] != run[2] && run[1] != run[2])
         );
     }
 
     #[test]
-    fn never_repeats_a_word_back_to_back() {
-        let words = generate(123, 10_000);
-        assert!(words.windows(2).all(|pair| pair[0] != pair[1]));
+    fn uses_every_word_in_the_list() {
+        let mut seen = generate(5, 10_000);
+        seen.sort_unstable();
+        seen.dedup();
+        assert_eq!(seen.len(), ENGLISH.len());
+    }
+
+    #[test]
+    fn below_excluding_skips_excluded_indices_uniformly() {
+        let mut rng = SplitMix64(9);
+        let mut hits = [0_u32; 5];
+        for _ in 0..30_000 {
+            hits[rng.below_excluding(5, [Some(3), Some(1)])] += 1;
+        }
+        assert_eq!((hits[1], hits[3]), (0, 0));
+        // Each of the three allowed indices expects 10,000 hits.
+        assert!(
+            [hits[0], hits[2], hits[4]]
+                .iter()
+                .all(|&count| (9_500..10_500).contains(&count))
+        );
     }
 
     #[test]

@@ -49,7 +49,7 @@ cluster. `PG_BIN` names the Postgres binary directory when it is not on `PATH`.
 
 **Browser** (`tests/ui.spec.mjs`, at 1440x900, 1280x720 and a 390x844 phone):
 - **A word test typed on the real keyboard with human timing.**
-  - The countdown and live state while typing.
+  - The countdown and live state while typing, and a first line of up to eleven words.
   - The result plate matches the server's verified numbers: WPM, accuracy, keys, one chart point per second, error marks, the word left wrong and the weakest keys.
   - Hovering or tapping a second shows its numbers.
   - Escape gives a fresh sheet.
@@ -57,7 +57,8 @@ cluster. `PG_BIN` names the Postgres binary directory when it is not on `PATH`.
 - A 15 s time test counts down and is scored at its limit.
 - Theme and sound choices survive a reload.
 - Typing plays the recorded typewriter clips, with a different clack for each key in a row, and backspace plays its own lighter tick.
-- On a phone, a rail chip does not move the page.
+- Each test kind keeps the length last chosen for it.
+- On a phone, a bar button does not move the page.
 - Error states: a refused result and an unreachable server.
 - Every page fails its check on any console error or uncaught exception.
 

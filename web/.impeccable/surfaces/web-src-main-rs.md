@@ -1,7 +1,7 @@
 ---
 version: 1
 slug: "web-src-main-rs"
-primary_target: "web/src/main.rs"
+primary_target: "src/main.rs"
 related_targets: []
 ---
 

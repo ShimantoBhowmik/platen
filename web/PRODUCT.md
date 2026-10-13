@@ -12,7 +12,7 @@ Frontend: Dioxus web (Rust compiled to WASM), chosen by the user. It follows the
 CLAUDE.md rule that deep computation stays in Rust, and it can share domain types such as
 test modes with the backend.
 
-Backend (exists): Rust, axum and Postgres in `src/`. Documented in `README.md`.
+Backend (exists): Rust, axum and Postgres in `server/`. Documented in `server/README.md`.
 
 ## Users
 
@@ -30,8 +30,8 @@ means a learner returns and their accuracy and speed rise over time.
 
 Speed and no friction. No account and no setup: the page loads instantly and typing starts
 within a second. Every score is also verified on the server from the keystroke log, so
-leaderboard numbers are real (see `README.md`). The user did not choose this as the headline
-difference.
+leaderboard numbers are real (see `server/README.md`). The user did not choose this as the
+headline difference.
 
 ## Operating Context
 
@@ -44,7 +44,7 @@ difference.
 ## Capabilities and Constraints
 
 - Test modes: time 15/30/60/120 s and words 10/25/50/100. The text comes from a fixed list of
-  the 1,000 most common everyday English words (`words/`).
+  the 1,000 most common everyday English words (`server/words/`).
 - Scores: WPM, raw WPM, accuracy and consistency, computed on the server.
 - Leaderboard: optional display name, best result per name per mode. Names are not protected
   because there are no accounts.
@@ -65,7 +65,7 @@ difference.
 
 ## Evidence on Hand
 
-- A working backend and API, documented in `README.md`.
+- A working backend and API, documented in `server/README.md`.
 - No testimonials, user counts, benchmarks, or press. Do not invent any.
 
 ## Product Principles

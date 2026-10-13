@@ -1,7 +1,9 @@
 .git
 .env
-target
-web/target
+**/.env
+**/target
 web/dist
-agent-testing
-.impeccable
+e2e
+scripts
+docs
+web/.impeccable

@@ -1,5 +1,5 @@
 {
-  "name": "platen-agent-testing",
+  "name": "platen-e2e",
   "private": true,
   "description": "End-to-end run of the whole platen platform in a real browser.",
   "type": "module",

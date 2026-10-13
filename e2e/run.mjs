@@ -17,6 +17,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
 const RESULTS = join(HERE, "results");
 const WEB_RELEASE_OUT = join(HERE, ".build", "web");
+const SERVER_BIN = join(ROOT, "server", "target", "debug", "platen");
 const WEB_DEBUG_PUBLIC = join(ROOT, "web", "target", "dx", "platen-web", "debug", "web", "public");
 
 const USAGE = `Usage: node run.mjs [options]
@@ -158,7 +159,7 @@ function build() {
     if (options["skip-build"]) {
         console.log("Skipping builds.");
     } else {
-        run("cargo", ["build", "--locked"]);
+        run("cargo", ["build", "--locked"], { cwd: join(ROOT, "server") });
         if (options.web === "release") {
             run("dx", ["bundle", "--platform", "web", "--release", "--out-dir", WEB_RELEASE_OUT], {
                 cwd: join(ROOT, "web"),
@@ -167,7 +168,7 @@ function build() {
             run("dx", ["build", "--platform", "web"], { cwd: join(ROOT, "web") });
         }
     }
-    for (const required of [join(ROOT, "target", "debug", "platen"), join(staticDir, "index.html")]) {
+    for (const required of [SERVER_BIN, join(staticDir, "index.html")]) {
         if (!existsSync(required)) {
             throw new Error(`Missing build output ${required}. Run without --skip-build.`);
         }
@@ -179,8 +180,8 @@ function build() {
 async function startServer(databaseUrl, staticDir) {
     const port = await freePort();
     const log = openSync(join(RESULTS, "server.log"), "w");
-    const server = spawn(join(ROOT, "target", "debug", "platen"), [], {
-        cwd: ROOT,
+    const server = spawn(SERVER_BIN, [], {
+        cwd: join(ROOT, "server"),
         env: {
             ...ENV,
             DATABASE_URL: databaseUrl,

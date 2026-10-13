@@ -1,4 +1,4 @@
-# agent-testing
+# e2e
 
 An end-to-end check of the whole platform, run before a branch goes to CI. One command
 starts a throwaway Postgres, builds and starts the API server, builds the frontend bundle it
@@ -11,11 +11,11 @@ Requirements:
 
 - Node 20 or later;
 - the Rust toolchain;
-- the Dioxus CLI (see the main README);
+- the Dioxus CLI (see `web/README.md`);
 - Postgres binaries (`initdb`, `pg_ctl`, `createdb`).
 
 ```bash
-cd agent-testing && npm ci
+cd e2e && npm ci
 ```
 
 ```bash

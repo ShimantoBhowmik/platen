@@ -3,12 +3,14 @@ html, body { margin: 0; background: #0b0b0b; }
 html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) body { background: #f2f2ef; }
 
 .tw-page {
-  /* One column width for the rail, the card and the legend: the card keeps the drawing's
-     3:2 shape inside the height the rail and legend leave. */
-  --tw-w: min(1240px, 100%, calc((100dvh - 208px) * 1.5 + 48px));
+  /* One column width for the bar, the card and the legend: the stage keeps its 2.2:1 shape
+     inside the height the bar and legend leave. */
+  --tw-stage-aspect: 2.2;
+  --tw-w: min(1240px, 100%, calc((100dvh - 236px) * var(--tw-stage-aspect) + 48px));
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 14px;
   padding: 18px 24px 22px;
   background: var(--anatomy-page);
@@ -18,54 +20,57 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
   -webkit-font-smoothing: antialiased;
 }
 .tw-page[data-theme="light"] { color-scheme: light; }
-/* Below about 845px the rail wraps onto a second row, so the column reserves that row too. */
-@media (max-width: 910px), (max-height: 760px) {
-  .tw-page { --tw-w: min(1240px, 100%, calc((100dvh - 252px) * 1.5 + 48px)); }
-}
 .tw-page ::selection { background: var(--anatomy-hi); color: var(--anatomy-page); }
 
-/* Rail: the brand, the test lengths and the tools, set like the card's own captions. */
-.tw-rail {
+/* Bar: the brand, the test length as two segmented controls, and three icon tools. */
+.tw-bar {
   width: var(--tw-w);
-  margin: 0 auto;
-  display: flex;
-  flex-wrap: wrap;
+  margin: 0 auto 6px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 10px 28px;
-  font-family: var(--anatomy-mono);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: 12px 24px;
 }
-.tw-brand { color: var(--anatomy-strong); letter-spacing: 0.14em; }
-.tw-modes { display: flex; flex-wrap: wrap; gap: 10px 22px; }
-.tw-group { display: flex; align-items: center; gap: 4px; }
-.tw-group-name { color: var(--anatomy-text); margin-right: 6px; }
-.tw-tools { display: flex; gap: 4px; margin-left: auto; }
-
-.tw-chip {
+.tw-brand { font: 700 22px/1 var(--tw-type); letter-spacing: -0.01em; color: var(--anatomy-strong); }
+.tw-modes { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.tw-seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--anatomy-faint);
+}
+.tw-seg-item, .tw-icon {
   appearance: none;
   border: 0;
   margin: 0;
-  padding: 6px 10px;
-  border-radius: 2px;
   background: transparent;
   color: var(--anatomy-text);
-  box-shadow: 0 0 0 1px var(--anatomy-faint);
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
-  font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition: color 160ms var(--anatomy-ease), box-shadow 160ms var(--anatomy-ease), background 160ms var(--anatomy-ease);
 }
-.tw-chip:hover { color: var(--anatomy-strong); box-shadow: 0 0 0 1px var(--anatomy-mid); }
-.tw-chip[aria-pressed="true"] { color: var(--anatomy-strong); background: var(--anatomy-face); box-shadow: 0 0 0 1px var(--anatomy-hi); }
-.tw-chip:focus-visible { outline: 1px solid var(--anatomy-hi); outline-offset: 3px; }
-.tw-chip:active { transform: translateY(1px); }
+.tw-seg-item {
+  min-width: 44px;
+  padding: 7px 12px;
+  border-radius: 2px;
+  font: 13px/1 var(--anatomy-mono);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+/* Hover only where a pointer can hover, so a tap on a phone leaves no stuck highlight. */
+@media (hover: hover) {
+  .tw-seg-item:hover, .tw-icon:hover { color: var(--anatomy-strong); }
+  .tw-icon:hover { background: var(--anatomy-face); }
+}
+.tw-seg-item[aria-pressed="true"] { color: var(--anatomy-strong); background: var(--anatomy-face); box-shadow: 0 0 0 1px var(--anatomy-lo); }
+.tw-seg-item:focus-visible, .tw-icon:focus-visible { outline: 1px solid var(--anatomy-hi); outline-offset: 2px; }
+.tw-seg-item:active, .tw-icon:active { transform: translateY(1px); }
+.tw-tools { display: flex; justify-self: end; gap: 2px; }
+.tw-icon { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 4px; }
+.tw-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
 
-/* The card keeps the drawing's 3:2 shape inside whatever height the window leaves. It is a
-   size container, so the large figures scale with the card rather than the window. */
+/* The card holds a 2.2:1 stage inside whatever height the window leaves. It is a size
+   container, so the large figures scale with the card rather than the window. */
 .tw-plate {
   width: var(--tw-w);
   margin: 0 auto;
@@ -85,7 +90,17 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
 .tw-restart:hover, .tw-restart:focus-visible { color: var(--anatomy-strong); }
 .tw-restart:focus-visible { outline: 1px solid var(--anatomy-hi); outline-offset: 4px; }
 
-.tw-stage { position: relative; outline: none; cursor: text; touch-action: pan-y; }
+/* The stage keeps one shape for the machine and the result, so nothing jumps between them;
+   the machine, wider than the stage, sits at its centre. */
+.tw-stage {
+  position: relative;
+  display: grid;
+  align-items: center;
+  aspect-ratio: var(--tw-stage-aspect);
+  outline: none;
+  cursor: text;
+  touch-action: pan-y;
+}
 .tw-svg { width: 100%; height: auto; }
 .tw-plate:not(:focus-within) .tw-svg { opacity: 0.55; transition: opacity 240ms var(--anatomy-ease); }
 .tw-plate:not(:focus-within) .tw-stage::after {
@@ -103,25 +118,27 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
   text-transform: uppercase;
 }
 
-/* Moving parts. The escapement steps; only the carriage return and the paper feed glide. */
-.tw-carriage { transition: none; }
-.tw-carriage[data-return="true"] { transition: transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+/* Moving parts. The type element steps one cell per key; only its return and the paper feed
+   glide. */
+.tw-carrier { transition: none; }
+.tw-carrier[data-return="true"] { transition: transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .tw-line { transition: transform 260ms var(--anatomy-ease); }
 .tw-key { transition: transform 45ms ease-out; }
 .tw-key[data-down="true"] { transform: var(--kd); }
 .tw-vibrator[data-on="true"] { transform: var(--vl); }
+.tw-ball[data-on="true"] { transform: var(--bs); }
 .tw-hammer { transition: transform 70ms ease-out; }
 .tw-hammer[data-on="true"] { transform: var(--hs); }
 .tw-cursor { fill: var(--tw-ink); opacity: 0.4; }
 
-/* The countdown: large, in the machine's type, in the empty bench left of the copy holder. */
+/* The countdown: large, in the machine's type, in the empty bench above the machine. */
 .tw-count {
   position: absolute;
-  left: 20px;
-  top: 46px;
+  left: 22px;
+  top: 22px;
   z-index: 1;
   margin: 0;
-  font: 700 clamp(40px, 7cqw, 88px)/1 var(--tw-type);
+  font: 700 clamp(36px, 5cqw, 64px)/1 var(--tw-type);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   color: var(--anatomy-text);
@@ -135,7 +152,7 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
 .tw-stage[data-done="true"] { cursor: default; }
 .tw-plate:not(:focus-within) .tw-stage[data-done="true"]::after { content: none; }
 .tw-result {
-  aspect-ratio: 900 / 600;
+  height: 100%;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;
   gap: 26px;
@@ -270,13 +287,14 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
 .tw-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; margin: 0; }
 
 @media (max-width: 720px) {
-  .tw-page { --tw-w: 100%; padding: 14px 16px 18px; }
-  .tw-tools { margin-left: 0; }
+  .tw-page { --tw-w: 100%; justify-content: flex-start; padding: 14px 16px 18px; }
+  .tw-bar { grid-template-columns: minmax(0, 1fr) auto; }
+  .tw-modes { grid-row: 2; grid-column: 1 / -1; justify-content: flex-start; }
   .tw-plate { padding: 40px 0 64px; }
-  /* Phones crop to the carriage, anchored at the left edge of the copy holder so its upcoming
-     lines read from their start; typed text on the sheet scrolls off as the carriage moves.
-     The crop runs to the card's frame. */
-  .tw-stage { height: max(320px, calc(100dvh - 340px)); overflow: hidden; }
+  /* Phones crop the drawing around the print point and follow the type element along the
+     line, so the next letters are always in view. The crop runs to the card's frame. */
+  .tw-stage { display: block; aspect-ratio: auto; height: max(320px, calc(100dvh - 380px)); overflow: hidden; }
+  .tw-stage[data-return="true"] .tw-svg { transition: transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1); }
   /* The countdown gets its own band above the cropped figure, clear of the copy holder. */
   .tw-plate:has(.tw-count) { padding-top: 86px; }
   .tw-count { top: 38px; font-size: 36px; }
@@ -292,7 +310,7 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
   .tw-practise { grid-template-columns: minmax(0, 1fr); gap: 22px; }
   .tw-plate .tw-svg {
     position: absolute;
-    left: 0;
+    left: 35%;
     top: 50%;
     width: 240%;
     max-width: none;
@@ -302,6 +320,7 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tw-carriage[data-return="true"], .tw-line, .tw-key, .tw-hammer, .tw-chip, .tw-count { transition: none; }
+  .tw-carrier[data-return="true"], .tw-stage[data-return="true"] .tw-svg, .tw-line, .tw-key, .tw-hammer,
+  .tw-seg-item, .tw-icon, .tw-count { transition: none; }
   .tw-result, .tw-plot, .tw-marks { animation: none; }
 }

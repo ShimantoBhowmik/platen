@@ -22,9 +22,11 @@ use crate::sound::Cue;
 
 /// Lines of printed text kept visible above the print line.
 const LINES_SHOWN: usize = 4;
+/// Most words on one line of the sheet.
+const WORDS_PER_LINE: usize = 11;
 /// Cells before the right end of a line where the margin bell rings.
 const BELL_AT: usize = 6;
-/// How long a typebar stays up against the platen: two frames.
+/// How long the type element stays against the platen: two frames.
 const STRIKE_MS: u32 = 34;
 /// How long a key stays down.
 const KEY_MS: u32 = 90;
@@ -143,12 +145,19 @@ fn mode_label(spec: ModeSpec) -> String {
     }
 }
 
+fn kind_name(kind: ModeKind) -> &'static str {
+    match kind {
+        ModeKind::Time => "time",
+        ModeKind::Words => "words",
+    }
+}
+
 /// Everything the machine animates, set by a key press and cleared by timers.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 struct Motion {
     key: Option<usize>,
     space: bool,
-    strike: Option<char>,
+    strike: bool,
     returning: bool,
     bell: bool,
 }
@@ -161,6 +170,9 @@ fn App() -> Element {
         mode: ModeKind::Time,
         amount: 30,
     });
+    // The length last chosen for each kind, so switching kind restores it.
+    let mut last_time = use_signal(|| 30_u16);
+    let mut last_words = use_signal(|| 25_u16);
     let mut phase = use_signal(|| Phase::Loading);
     let mut test = use_signal(|| None::<NewTest>);
     let mut session = use_signal(|| None::<Session>);
@@ -189,6 +201,7 @@ fn App() -> Element {
                     let finishes = spec.mode == ModeKind::Words;
                     session.set(Some(Session::new(
                         fresh.words.clone(),
+                        WORDS_PER_LINE,
                         FIGURE.text.wrap,
                         FIGURE.text.cols - FIGURE.text.wrap,
                         finishes,
@@ -248,14 +261,13 @@ fn App() -> Element {
     };
 
     let mut animate =
-        move |effect: Effect, key: Option<usize>, character: Option<char>, line_changed: bool| {
+        move |effect: Effect, key: Option<usize>, printed: bool, line_changed: bool| {
             let space = matches!(effect, Effect::Spaced { .. });
-            let struck =
-                matches!(effect, Effect::Struck { .. } | Effect::Finished) && character.is_some();
+            let struck = matches!(effect, Effect::Struck { .. } | Effect::Finished) && printed;
             motion.set(Motion {
                 key,
                 space,
-                strike: if struck && !calm { character } else { None },
+                strike: struck && !calm,
                 returning: line_changed,
                 bell: motion().bell,
             });
@@ -270,7 +282,7 @@ fn App() -> Element {
             let this = generation();
             spawn(async move {
                 TimeoutFuture::new(STRIKE_MS).await;
-                motion.with_mut(|m| m.strike = None);
+                motion.with_mut(|m| m.strike = false);
                 TimeoutFuture::new(KEY_MS - STRIKE_MS).await;
                 if generation() == this {
                     motion.with_mut(|m| {
@@ -336,15 +348,16 @@ fn App() -> Element {
             phase.set(Phase::Running);
             run_clock();
         }
-        let character = match stroke {
-            Stroke::Char(c) => Some(c),
-            Stroke::Back => None,
-        };
         let key = match stroke {
             Stroke::Back => FIGURE.key_index('\u{8}'),
             Stroke::Char(c) => FIGURE.key_index(c),
         };
-        animate(effect, key, character, line_after != line_before);
+        animate(
+            effect,
+            key,
+            matches!(stroke, Stroke::Char(_)),
+            line_after != line_before,
+        );
         if col + BELL_AT >= FIGURE.text.cols && bell_line() != Some(line_after) {
             bell_line.set(Some(line_after));
             ring_bell();
@@ -359,12 +372,14 @@ fn App() -> Element {
         focus_stage();
     };
 
-    let choose = move |spec: ModeSpec| {
-        move |_| {
-            mode.set(spec);
-            load(spec);
-            focus_stage();
+    let mut choose = move |spec: ModeSpec| {
+        match spec.mode {
+            ModeKind::Time => last_time.set(spec.amount),
+            ModeKind::Words => last_words.set(spec.amount),
         }
+        mode.set(spec);
+        load(spec);
+        focus_stage();
     };
 
     let elapsed_ms = started().map_or(0.0, |start| now() - start).max(0.0) as u32;
@@ -415,17 +430,22 @@ fn App() -> Element {
     let m = motion();
     let current_line = typed.as_ref().map_or(0, Session::current_line);
     let cursor = typed.as_ref().map_or(0, Session::cursor_col);
-    let dx = FIGURE.carriage_dx(cursor);
-    let [cx, cy] = FIGURE.carriage_step;
-    let carriage = format!("transform: translate({:.2}px, {:.2}px)", cx * dx, cy * dx);
+    let travel = FIGURE.col_x(cursor);
+    let [cx, cy] = FIGURE.carrier_step;
+    let carrier = format!(
+        "transform: translate({:.2}px, {:.2}px)",
+        cx * travel,
+        cy * travel
+    );
     let [kx, ky] = FIGURE.key_down;
     let [vx, vy] = FIGURE.vibrator_lift;
+    let [bx, by] = FIGURE.ball_strike;
     let [hx, hy] = FIGURE.hammer_swing;
     let vars = format!(
-        "--kd: translate({kx:.2}px, {ky:.2}px); --vl: translate({vx:.2}px, {vy:.2}px); --hs: translate({hx:.2}px, {hy:.2}px)"
+        "--kd: translate({kx:.2}px, {ky:.2}px); --vl: translate({vx:.2}px, {vy:.2}px); --bs: translate({bx:.2}px, {by:.2}px); --hs: translate({hx:.2}px, {hy:.2}px)"
     );
-    let [cx, cy] = FIGURE.crop_at;
-    let crop = format!("--cx: {:.2}%; --cy: {:.2}%", cx * 100.0, cy * 100.0);
+    let [px, py] = FIGURE.strike_point(cursor);
+    let crop = format!("--cx: {:.2}%; --cy: {:.2}%", px * 100.0, py * 100.0);
     let upcoming: Vec<(f64, String)> = typed
         .as_ref()
         .map(|s| {
@@ -450,15 +470,9 @@ fn App() -> Element {
             .map(|cell| cell.copy.unwrap_or(' '))
             .collect::<String>()
     });
-
-    let test_name = match spec.mode {
-        ModeKind::Time => format!("{} test", mode_label(spec)),
-        ModeKind::Words => format!("{} words", spec.amount),
-    };
-    let title = if done.is_some() {
-        format!("speed per second · {test_name}")
-    } else {
-        format!("typewriter · {test_name}")
+    let kind_amount = move |kind: ModeKind| match kind {
+        ModeKind::Time => last_time(),
+        ModeKind::Words => last_words(),
     };
 
     rsx! {
@@ -470,64 +484,91 @@ fn App() -> Element {
         document::Stylesheet { href: asset!("/assets/typewriter.css") }
         document::Stylesheet { href: asset!("/assets/app.css") }
         div { class: "iso tw-page", "data-theme": theme().name(),
-            header { class: "tw-rail",
+            header { class: "tw-bar",
                 span { class: "tw-brand", "platen" }
                 nav { class: "tw-modes", aria_label: "Test length",
-                    for kind in [ModeKind::Time, ModeKind::Words] {
-                        div { class: "tw-group", role: "group",
-                            aria_label: if kind == ModeKind::Time { "Seconds" } else { "Words" },
-                            span { class: "tw-group-name", if kind == ModeKind::Time { "time" } else { "words" } }
-                            for option in ModeSpec::ALL.into_iter().filter(|o| o.mode == kind) {
-                                button {
-                                    class: "tw-chip",
-                                    r#type: "button",
-                                    aria_pressed: "{option == spec}",
-                                    onclick: choose(option),
-                                    {mode_label(option)}
-                                }
+                    div { class: "tw-seg", role: "group", aria_label: "Test kind",
+                        for kind in [ModeKind::Time, ModeKind::Words] {
+                            button {
+                                class: "tw-seg-item",
+                                r#type: "button",
+                                aria_pressed: "{kind == spec.mode}",
+                                onclick: move |_| choose(ModeSpec { mode: kind, amount: kind_amount(kind) }),
+                                {kind_name(kind)}
+                            }
+                        }
+                    }
+                    div { class: "tw-seg", role: "group",
+                        aria_label: if spec.mode == ModeKind::Time { "Seconds" } else { "Words" },
+                        for option in ModeSpec::ALL.into_iter().filter(|o| o.mode == spec.mode) {
+                            button {
+                                class: "tw-seg-item",
+                                r#type: "button",
+                                aria_pressed: "{option == spec}",
+                                onclick: move |_| choose(option),
+                                {mode_label(option)}
                             }
                         }
                     }
                 }
                 div { class: "tw-tools",
                     button {
-                        class: "tw-chip",
+                        class: "tw-icon",
                         r#type: "button",
                         aria_pressed: "{sound_on()}",
                         aria_label: "Typewriter sound",
+                        title: if sound_on() { "Sound on" } else { "Sound off" },
                         onclick: move |_| {
                             let next = !sound_on();
                             sound_on.set(next);
                             storage_set(STORAGE_SOUND, if next { "on" } else { "off" });
                             focus_stage();
                         },
-                        "sound"
+                        svg { view_box: "0 0 20 20", "aria-hidden": "true",
+                            path { d: "M3.5 7.5h3l4.5-3.5v12l-4.5-3.5h-3z" }
+                            if sound_on() {
+                                path { d: "M13.6 7.6a3.4 3.4 0 0 1 0 4.8M15.8 5.4a6.5 6.5 0 0 1 0 9.2" }
+                            } else {
+                                path { d: "M13.5 8l4 4M17.5 8l-4 4" }
+                            }
+                        }
                     }
                     button {
-                        class: "tw-chip",
+                        class: "tw-icon",
                         r#type: "button",
                         aria_pressed: "{theme() == Theme::Light}",
                         aria_label: "Light theme",
+                        title: if theme() == Theme::Light { "Light theme" } else { "Dark theme" },
                         onclick: move |_| {
                             let next = if theme() == Theme::Dark { Theme::Light } else { Theme::Dark };
                             theme.set(next);
                             storage_set(STORAGE_THEME, next.name());
                             focus_stage();
                         },
-                        "light"
+                        svg { view_box: "0 0 20 20", "aria-hidden": "true",
+                            if theme() == Theme::Light {
+                                circle { cx: "10", cy: "10", r: "3.4" }
+                                path { d: "M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" }
+                            } else {
+                                path { d: "M15.8 12.4A6.3 6.3 0 0 1 7.6 4.2a6.3 6.3 0 1 0 8.2 8.2z" }
+                            }
+                        }
                     }
                     button {
-                        class: "tw-chip",
+                        class: "tw-icon",
                         r#type: "button",
+                        aria_label: "New sheet",
+                        title: "New sheet",
                         onclick: fresh_sheet,
-                        "new sheet"
+                        svg { view_box: "0 0 20 20", "aria-hidden": "true",
+                            path { d: "M4.6 8.2A5.8 5.8 0 1 1 4.4 12" }
+                            path { d: "M4.2 3.8v4.6h4.6" }
+                        }
                     }
                 }
             }
             main { class: "iso-plate tw-plate",
                 div { class: "iso-plate-corners",
-                    span { class: "iso-plate-corner", "data-corner": "fig", if done.is_some() { "Fig 2" } else { "Fig 1" } }
-                    span { class: "iso-plate-corner", "data-corner": "title", "{title}" }
                     span { class: "iso-plate-corner tw-readout", "data-corner": "readout", "{readout}" }
                 }
                 if let Some((big, small)) = countdown {
@@ -551,6 +592,7 @@ fn App() -> Element {
                     role: if done.is_some() { "region" } else { "application" },
                     style: "{crop}",
                     "data-done": "{done.is_some()}",
+                    "data-return": "{m.returning}",
                     aria_label: if done.is_some() { "Result. Tab then Enter, or Escape, gives a fresh sheet." } else { "Typewriter. Type the faint text on the sheet. Tab then Enter, or Escape, gives a fresh sheet." },
                     autofocus: true,
                     onclick: move |_| focus_stage(),
@@ -580,56 +622,53 @@ fn App() -> Element {
                             }
                         }
                         g { class: "tw-hammer", "data-on": "{m.bell}", dangerous_inner_html: "{FIGURE.hammer}" }
-                        g { class: "tw-carriage", "data-return": "{m.returning}", style: "{carriage}",
-                            g { dangerous_inner_html: "{FIGURE.carriage_back}" }
-                            g { dangerous_inner_html: "{FIGURE.sheet}" }
-                            g { transform: "{FIGURE.paper_matrix}",
-                                clipPath { id: "tw-sheet-clip",
-                                    rect {
-                                        x: "{text.x0 - text.margin}",
-                                        y: "{text.top}",
-                                        width: "{text.cols as f64 * text.cell + 2.0 * text.margin}",
-                                        height: "{text.baseline - text.top + 6.0}",
-                                    }
+                        g { dangerous_inner_html: "{FIGURE.platen}" }
+                        g { dangerous_inner_html: "{FIGURE.sheet}" }
+                        g { transform: "{FIGURE.paper_matrix}",
+                            clipPath { id: "tw-sheet-clip",
+                                rect {
+                                    x: "{text.x0 - text.margin}",
+                                    y: "{text.top}",
+                                    width: "{text.cols as f64 * text.cell + 2.0 * text.margin}",
+                                    height: "{text.baseline - text.top + 6.0}",
                                 }
-                                g { clip_path: "url(#tw-sheet-clip)",
-                                    if let Some(s) = typed.as_ref() {
-                                        for line in first_line..=current_line {
-                                            g {
-                                                key: "{line}",
-                                                class: "tw-line",
-                                                style: "transform: translate(0px, {-((current_line - line) as f64) * text.line_h:.2}px)",
-                                                for cell in s.cells(line) {
-                                                    SheetCell { cell, line_is_current: line == current_line }
-                                                }
+                            }
+                            g { clip_path: "url(#tw-sheet-clip)",
+                                if let Some(s) = typed.as_ref() {
+                                    for line in first_line..=current_line {
+                                        g {
+                                            key: "{line}",
+                                            class: "tw-line",
+                                            style: "transform: translate(0px, {-((current_line - line) as f64) * text.line_h:.2}px)",
+                                            for cell in s.cells(line) {
+                                                SheetCell { cell, line_is_current: line == current_line }
                                             }
                                         }
-                                        if matches!(phase(), Phase::Ready | Phase::Running) {
-                                            rect {
-                                                class: "tw-cursor",
-                                                x: "{FIGURE.col_x(cursor) - text.cell * 0.42:.2}",
-                                                y: "{text.baseline + 2.4:.2}",
-                                                width: "{text.cell * 0.84:.2}",
-                                                height: "1.1",
-                                            }
+                                    }
+                                    if matches!(phase(), Phase::Ready | Phase::Running) {
+                                        rect {
+                                            class: "tw-cursor",
+                                            x: "{FIGURE.col_x(cursor) - text.cell * 0.42:.2}",
+                                            y: "{text.baseline + 2.4:.2}",
+                                            width: "{text.cell * 0.84:.2}",
+                                            height: "1.1",
                                         }
                                     }
                                 }
                             }
-                            g { dangerous_inner_html: "{FIGURE.carriage_front}" }
                         }
-                        g { dangerous_inner_html: "{FIGURE.front}" }
-                        g { class: "tw-vibrator", "data-on": "{m.strike.is_some()}", dangerous_inner_html: "{FIGURE.vibrator}" }
-                        g { dangerous_inner_html: "{FIGURE.mark}" }
+                        g { dangerous_inner_html: "{FIGURE.bail}" }
+                        g { dangerous_inner_html: "{FIGURE.rails}" }
+                        g { class: "tw-carrier", "data-return": "{m.returning}", style: "{carrier}",
+                            g { dangerous_inner_html: "{FIGURE.carrier}" }
+                            g { class: "tw-vibrator", "data-on": "{m.strike}", dangerous_inner_html: "{FIGURE.vibrator}" }
+                            g { dangerous_inner_html: "{FIGURE.mark}" }
+                            g { class: "tw-ball", "data-on": "{m.strike}", dangerous_inner_html: "{FIGURE.ball}" }
+                        }
                         for (index, key) in FIGURE.keys.iter().enumerate() {
                             g { key: "{index}", class: "tw-key", "data-down": "{m.key == Some(index)}", dangerous_inner_html: "{key.svg}" }
                         }
                         g { class: "tw-key", "data-down": "{m.space}", dangerous_inner_html: "{FIGURE.space}" }
-                        if let Some(character) = m.strike {
-                            if let Some(bar) = FIGURE.strikes.get(&character.to_ascii_lowercase()) {
-                                g { dangerous_inner_html: "{bar}" }
-                            }
-                        }
                     }
                     }
                     if let Some(line) = target_line.filter(|_| done.is_none()) {

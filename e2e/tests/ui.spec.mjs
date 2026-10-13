@@ -16,15 +16,43 @@ async function openApp(page) {
     await expect(page.locator("[data-corner=readout]")).toHaveText("ready", { timeout: 30_000 });
 }
 
-/** Picks a test length on the rail and returns the words the server issued for it. */
-async function chooseMode(page, label) {
-    const issued = page.waitForResponse(
+/** The next test the server issues. */
+function nextTest(page) {
+    return page.waitForResponse(
         (response) => response.url().endsWith("/api/tests") && response.request().method() === "POST",
     );
+}
+
+/**
+ * Picks a test kind (`"time"` or `"words"`) and length on the bar and returns the words the
+ * server issued for it.
+ */
+async function chooseMode(page, kind, label) {
+    const kindButton = page.getByRole("group", { name: "Test kind" }).getByRole("button", { name: kind });
+    if ((await kindButton.getAttribute("aria-pressed")) !== "true") {
+        const switched = nextTest(page);
+        await kindButton.click();
+        await switched;
+        await expect(page.locator("[data-corner=readout]")).toHaveText("ready");
+    }
+    const issued = nextTest(page);
     await page.getByRole("button", { name: label, exact: true }).click();
     const { words } = await (await issued).json();
     await expect(page.locator("[data-corner=readout]")).toHaveText("ready");
     return words;
+}
+
+/**
+ * The words the sheet's first line holds: at most eleven, and at most 76 cells, the same rule
+ * the app lays the copy out with.
+ */
+function firstLine(words) {
+    const line = [];
+    for (const word of words) {
+        if (line.length === 11 || [...line, word].join(" ").length > 76) break;
+        line.push(word);
+    }
+    return line.join(" ");
 }
 
 /** The next result the app submits, as the server answered it. */
@@ -57,10 +85,11 @@ async function expectFits(page, testInfo) {
 test("a word test typed on the keyboard ends in the verified result plate", async ({ page }, testInfo) => {
     await openApp(page);
     await expect(page).toHaveTitle("platen");
-    const words = await chooseMode(page, "10");
+    const words = await chooseMode(page, "words", "10");
     const count = page.locator(".tw-count");
     await expect(count).toHaveText("0/10");
-    await expect(page.locator("[data-corner=fig]")).toHaveText("Fig 1");
+    await expect(page.locator("[data-corner=fig]")).toHaveCount(0);
+    await expect(page.getByText(/^Current line: /)).toHaveText(`Current line: ${firstLine(words)}`);
     await expectFits(page, testInfo);
     await screen(page, testInfo, "1-ready");
 
@@ -83,7 +112,6 @@ test("a word test typed on the keyboard ends in the verified result plate", asyn
     const plate = page.locator(".tw-result");
     await expect(plate).toBeVisible();
     await expect(count).toHaveCount(0);
-    await expect(page.locator("[data-corner=fig]")).toHaveText("Fig 2");
     await expect(page.locator("[data-corner=readout]")).toHaveText("");
     const [wpmShown, accuracyShown] = await plate.locator(".tw-figures dd").allTextContents();
     expect(Math.abs(Number.parseInt(wpmShown, 10) - stats.wpm)).toBeLessThanOrEqual(0.5);
@@ -113,7 +141,7 @@ test("a word test typed on the keyboard ends in the verified result plate", asyn
     await screen(page, testInfo, "3-result");
 
     if (testInfo.project.name === "phone") {
-        // A rail chip must not jump the page, even when the stage is off screen.
+        // A bar button must not jump the page, even when the stage is off screen.
         await page.evaluate(() => {
             document.activeElement?.blur();
             scrollTo(0, 0);
@@ -128,7 +156,7 @@ test("a word test typed on the keyboard ends in the verified result plate", asyn
     await page.locator("#tw-stage").focus();
     await page.keyboard.press("Escape");
     await expect(page.locator("[data-corner=readout]")).toHaveText("ready");
-    await expect(page.locator("[data-corner=fig]")).toHaveText("Fig 1");
+    await expect(page.locator(".tw-result")).toHaveCount(0);
     await expect(count).toHaveText("0/10");
 
     // So does Tab then Enter, also in the middle of a test.
@@ -145,7 +173,7 @@ test("a word test typed on the keyboard ends in the verified result plate", asyn
 test("a time test counts down and is scored at its limit", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "one size is enough for a 15 s wait");
     await openApp(page);
-    const words = await chooseMode(page, "15s");
+    const words = await chooseMode(page, "time", "15s");
     const count = page.locator(".tw-count");
     await expect(count).toHaveText("15");
 
@@ -164,6 +192,25 @@ test("a time test counts down and is scored at its limit", async ({ page }, test
     await expect(plate.locator(".tw-dot")).toHaveCount(15);
     await expect(stat(plate, "time")).toHaveText("15s");
     await screen(page, testInfo, "5-time-result");
+});
+
+test("each test kind keeps the length last chosen for it", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop", "the bar's logic does not depend on size");
+    await openApp(page);
+    const seconds = page.getByRole("group", { name: "Seconds" });
+    await expect(seconds.getByRole("button", { name: "30s" })).toHaveAttribute("aria-pressed", "true");
+    await chooseMode(page, "time", "60s");
+    await chooseMode(page, "words", "50");
+    await expect(page.locator(".tw-count")).toHaveText("0/50");
+
+    await page.getByRole("button", { name: "time", exact: true }).click();
+    await expect(seconds.getByRole("button", { name: "60s" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".tw-count")).toHaveText("60");
+    await page.getByRole("button", { name: "words", exact: true }).click();
+    await expect(page.getByRole("group", { name: "Words" }).getByRole("button", { name: "50" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+    );
 });
 
 test("theme and sound choices survive a reload", async ({ page }) => {
@@ -198,7 +245,7 @@ test("typing plays the recorded typewriter clips", async ({ page }, testInfo) =>
         };
     });
     await openApp(page);
-    const words = await chooseMode(page, "10");
+    const words = await chooseMode(page, "words", "10");
 
     const keys = `${words[0]} ${words[1][0]}`;
     await typeLikeHuman(page, keys);
@@ -234,7 +281,7 @@ test.describe("error states", () => {
             }),
         );
         await openApp(page);
-        const words = await chooseMode(page, "10");
+        const words = await chooseMode(page, "words", "10");
 
         await page.locator("#tw-stage").click();
         await typeLikeHuman(page, words.join(" "));

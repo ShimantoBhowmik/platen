@@ -97,8 +97,9 @@ Returns `200` while the process is up.
   spaces between words. Characters deleted with backspace do not count.
 * Accuracy is the percentage of character keystrokes that matched the text when typed.
   Corrected typos still count as errors.
-* Consistency measures how steady the speed was. The server counts the characters typed in
-  each second of the test (backspace excluded) and turns each count into a raw WPM. With
+* Consistency measures how steady the speed was. The server counts the character keystrokes
+  in each second of the test, the same ones accuracy counts (no backspaces, and no spaces
+  typed before a word's first letter), and turns each count into a raw WPM. With
   `cv` as the coefficient of variation of those values (standard deviation divided by mean),
   consistency is `100 * (1 - tanh(cv + cv^3/3 + cv^5/5))`. For small `cv` this is about
   `100 * (1 - cv)`, and it falls smoothly toward 0. A word test also scores its last partial
@@ -143,9 +144,9 @@ Every result also has a `timeline` for a speed chart, with one point per scored 
 ```
 
 * `wpm` is the WPM from the start of the test to the end of that second, counted like the
-  result's WPM. The last point equals the result's WPM when the test ends on a scored second.
-* `raw_wpm` is the raw WPM of the character keys typed in that second alone, rounded. These
-  are the values that consistency measures.
+  result's WPM. The last point runs to the end of the test, so it equals the result's WPM.
+* `raw_wpm` is the raw WPM of the character keystrokes typed in that second alone, rounded.
+  These are the values that consistency measures.
 * `errors` counts the character keystrokes in that second that did not match the text.
 * The seconds follow the consistency rules: a word test also gets a point for its last
   partial second if it lasts at least 0.5 s.

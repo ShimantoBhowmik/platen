@@ -84,6 +84,8 @@ test("a typed word test is scored, stored, ranked and single-use", async ({ requ
         expect(point.wpm).toBeGreaterThanOrEqual(0);
         expect(Number.isInteger(point.raw_wpm)).toBe(true);
     }
+    // The last point runs to the end of the test, even through an unscored partial second.
+    expect(timeline.at(-1).wpm).toBe(stats.wpm);
     expect(timeline.reduce((sum, point) => sum + point.errors, 0)).toBeLessThanOrEqual(3);
 
     const fetched = await request.get(`/api/results/${result.id}`);

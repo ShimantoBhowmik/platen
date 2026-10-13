@@ -1,0 +1,9 @@
+name = "platen-proofs"
+defaultTargets = ["Platen"]
+
+[[lean_lib]]
+name = "Platen"
+
+# A `sorry` is only a warning by default; this makes it fail the build.
+[leanOptions]
+warningAsError = true

@@ -86,3 +86,14 @@ jobs:
 
       - name: Check WASM build
         run: cargo check --locked --target wasm32-unknown-unknown
+
+  proofs:
+    name: lean proofs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Installs the toolchain pinned in proofs/lean-toolchain and runs `lake build`.
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: proofs

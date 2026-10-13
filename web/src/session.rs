@@ -47,10 +47,11 @@ pub enum Ink {
 }
 
 /// One cell on the sheet.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
-    /// Column on the line.
-    pub col: usize,
+    /// Where the cell is drawn on the line, in cells: its column plus the stretch of the word
+    /// gaps before it.
+    pub x: f64,
     /// The character printed by the typist, if any.
     pub typed: Option<char>,
     /// The practice copy under it, if any.
@@ -59,12 +60,22 @@ pub struct Cell {
     pub ink: Ink,
 }
 
+/// One line of the copy, laid out once when the session starts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Line {
+    /// Index of the line's first word.
+    start: usize,
+    /// Cells the copy falls short of the wrap width, spread evenly over the line's word gaps
+    /// so it ends flush. Zero on the last line, which stays left-aligned, and on a line of one
+    /// word, which has no gap to spread them over.
+    spare: usize,
+}
+
 /// A typing session over a fixed list of words.
 #[derive(Debug, Clone)]
 pub struct Session {
     words: Vec<String>,
-    /// First word of each line, laid out once from the copy.
-    line_starts: Vec<usize>,
+    lines: Vec<Line>,
     inputs: Vec<String>,
     slack: usize,
     finishes_on_last_word: bool,
@@ -74,7 +85,8 @@ pub struct Session {
 }
 
 impl Session {
-    /// Lays out `words` on lines of at most `cols` cells, as many words as fit.
+    /// Lays out `words` on lines of at most `cols` cells, as many words as fit, each line but
+    /// the last justified to end at `cols`.
     ///
     /// # Arguments
     ///
@@ -84,21 +96,28 @@ impl Session {
     ///   margin locks and further extras overstrike the last cell
     /// * `finishes_on_last_word` - True for a word test, false for a time test
     pub fn new(words: Vec<String>, cols: usize, slack: usize, finishes_on_last_word: bool) -> Self {
-        let mut line_starts = vec![0];
+        let mut lines = Vec::new();
+        let mut start = 0;
         let mut width = 0;
         for (index, word) in words.iter().enumerate() {
             let len = word.chars().count();
             let needed = if width == 0 { len } else { width + 1 + len };
             if width > 0 && needed > cols {
-                line_starts.push(index);
+                let one_word = index - start == 1;
+                lines.push(Line {
+                    start,
+                    spare: if one_word { 0 } else { cols - width },
+                });
+                start = index;
                 width = len;
             } else {
                 width = needed;
             }
         }
+        lines.push(Line { start, spare: 0 });
         Self {
             words,
-            line_starts,
+            lines,
             inputs: vec![String::new()],
             slack,
             finishes_on_last_word,
@@ -189,7 +208,7 @@ impl Session {
 
     /// How many lines the copy fills.
     pub fn line_count(&self) -> usize {
-        self.line_starts.len()
+        self.lines.len()
     }
 
     /// Words committed so far.
@@ -213,16 +232,15 @@ impl Session {
     }
 
     fn line_of(&self, word: usize) -> usize {
-        self.line_starts.partition_point(|&start| start <= word) - 1
+        self.lines.partition_point(|line| line.start <= word) - 1
     }
 
     fn words_on(&self, line: usize) -> std::ops::Range<usize> {
-        let start = self.line_starts[line];
+        let start = self.lines[line].start;
         let end = self
-            .line_starts
+            .lines
             .get(line + 1)
-            .copied()
-            .unwrap_or(self.words.len());
+            .map_or(self.words.len(), |next| next.start);
         start..end
     }
 
@@ -231,32 +249,38 @@ impl Session {
         self.layout(line).0
     }
 
-    /// The column the type element is over: where the next character lands.
-    pub fn cursor_col(&self) -> usize {
-        self.layout(self.current_line()).1.unwrap_or(0)
+    /// Where the type element is over, in cells: where the next character lands.
+    pub fn cursor_x(&self) -> f64 {
+        self.layout(self.current_line()).1.unwrap_or(0.0)
     }
 
-    /// Lays out one line, and the cursor column when it is the current line.
+    /// Lays out one line, and the cursor position when it is the current line.
     ///
     /// Extra letters take the line's slack cells; once those are used the margin locks, and
-    /// further extras overstrike the last cell, as a typewriter does at its right margin.
-    fn layout(&self, line: usize) -> (Vec<Cell>, Option<usize>) {
+    /// further extras overstrike the last cell, as a typewriter does at its right margin. The
+    /// justification stretch is fixed from the copy, so extras push later words by whole cells.
+    fn layout(&self, line: usize) -> (Vec<Cell>, Option<f64>) {
         let mut cells = Vec::new();
         let mut cursor = None;
         let mut col = 0;
         let mut extras = 0;
         let current = self.word_index();
         let words = self.words_on(line);
-        for word in words.clone() {
-            if word > words.start {
+        let spare = self.lines[line].spare;
+        let gaps = words.len().saturating_sub(1).max(1);
+        // Multiplying before dividing puts the last word exactly flush at the wrap width.
+        let stretch = |gaps_before: usize| (spare * gaps_before) as f64 / gaps as f64;
+        for (gaps_before, word) in words.clone().enumerate() {
+            if gaps_before > 0 {
                 cells.push(Cell {
-                    col,
+                    x: col as f64 + stretch(gaps_before - 1),
                     typed: None,
                     copy: None,
                     ink: Ink::Copy,
                 });
                 col += 1;
             }
+            let shift = stretch(gaps_before);
             let copy: Vec<char> = self.words[word].chars().collect();
             let typed: Vec<char> = self
                 .inputs
@@ -267,7 +291,7 @@ impl Session {
             let cells_in_word = copy.len().max(typed.len());
             for i in 0..cells_in_word {
                 if word == current && i == typed.len() {
-                    cursor = Some(col);
+                    cursor = Some(col as f64 + shift);
                 }
                 let ink = match (typed.get(i), copy.get(i)) {
                     (Some(t), Some(c)) if t == c => Ink::Hit,
@@ -284,7 +308,7 @@ impl Session {
                     col - 1
                 };
                 cells.push(Cell {
-                    col: at,
+                    x: at as f64 + shift,
                     typed: typed.get(i).copied(),
                     copy: copy.get(i).copied(),
                     ink,
@@ -292,7 +316,7 @@ impl Session {
             }
             if word == current && typed.len() >= copy.len() {
                 let locked = typed.len() > copy.len() && extras >= self.slack;
-                cursor = Some(if locked { col - 1 } else { col });
+                cursor = Some(if locked { col - 1 } else { col } as f64 + shift);
             }
         }
         (cells, cursor)
@@ -327,17 +351,65 @@ mod tests {
             .collect()
     }
 
-    #[test]
-    fn wraps_words_into_lines_of_the_sheet() {
-        let s = session(&["alpha", "beta", "gamma", "delta"], true);
-        assert_eq!(s.line_starts, [0, 2]);
+    fn xs(s: &Session, line: usize) -> Vec<f64> {
+        s.cells(line).iter().map(|cell| cell.x).collect()
     }
 
     #[test]
-    fn fills_a_line_with_as_many_short_words_as_fit() {
+    fn wraps_words_into_lines_of_the_sheet() {
+        let s = session(&["alpha", "beta", "gamma", "delta"], true);
+        assert_eq!(s.line_count(), 2);
+        let copy: String = s.cells(1).iter().filter_map(|cell| cell.copy).collect();
+        assert_eq!(copy, "gammadelta");
+    }
+
+    #[test]
+    fn fills_a_line_with_as_many_short_words_as_fit_and_ends_it_flush() {
         let words: Vec<String> = ["a"; 13].iter().map(|w| (*w).to_owned()).collect();
         let s = Session::new(words, 24, 4, true);
-        assert_eq!(s.line_starts, [0, 12]);
+        assert_eq!(s.line_count(), 2);
+        let first = xs(&s, 0);
+        assert_eq!(first.len(), 23);
+        assert_eq!(first[2], 2.0 + 1.0 / 11.0);
+        assert_eq!(first[22], 23.0);
+        assert_eq!(xs(&s, 1), [0.0]);
+    }
+
+    #[test]
+    fn justifies_a_line_by_spreading_the_spare_cells_over_its_gaps() {
+        let s = session(&["ab", "cd", "ef", "ghijkl"], true);
+        assert_eq!(xs(&s, 0), [0.0, 1.0, 2.0, 5.0, 6.0, 7.0, 10.0, 11.0]);
+    }
+
+    #[test]
+    fn leaves_the_last_line_and_a_one_word_line_ragged() {
+        let s = session(&["abcdefghij", "kl", "mn"], true);
+        assert_eq!(
+            xs(&s, 0),
+            [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]
+        );
+        assert_eq!(xs(&s, 1), [0.0, 1.0, 2.0, 3.0, 4.0]);
+    }
+
+    #[test]
+    fn space_carries_the_type_element_across_the_stretched_gap() {
+        let mut s = session(&["ab", "cd", "ef", "ghijkl"], true);
+        type_all(&mut s, "ab");
+        assert_eq!(s.cursor_x(), 2.0);
+        type_all(&mut s, " ");
+        assert_eq!(s.cursor_x(), 5.0);
+        type_all(&mut s, "cd ef");
+        assert_eq!(s.cursor_x(), 12.0);
+        type_all(&mut s, " ");
+        assert_eq!(s.cursor_x(), 0.0);
+    }
+
+    #[test]
+    fn extra_letters_push_later_words_by_whole_cells_on_a_justified_line() {
+        let mut s = session(&["ab", "cd", "ef", "ghijkl"], true);
+        type_all(&mut s, "abx");
+        assert_eq!(xs(&s, 0), [0.0, 1.0, 2.0, 3.0, 6.0, 7.0, 8.0, 11.0, 12.0]);
+        assert_eq!(s.cursor_x(), 3.0);
     }
 
     #[test]
@@ -363,7 +435,7 @@ mod tests {
         assert_eq!(s.press(Stroke::Back, 0), Effect::Ignored);
         type_all(&mut s, "cx ");
         assert_eq!(s.press(Stroke::Back, 0), Effect::Backed);
-        assert_eq!(s.cursor_col(), 5);
+        assert_eq!(s.cursor_x(), 5.0);
     }
 
     #[test]
@@ -403,19 +475,18 @@ mod tests {
     fn cursor_follows_extra_letters() {
         let mut s = session(&["ab", "cd"], true);
         type_all(&mut s, "abx");
-        assert_eq!(s.cursor_col(), 3);
+        assert_eq!(s.cursor_x(), 3.0);
         type_all(&mut s, " c");
-        assert_eq!(s.cursor_col(), 5);
+        assert_eq!(s.cursor_x(), 5.0);
     }
 
     #[test]
     fn margin_locks_after_the_slack_cells() {
         let mut s = session(&["ab", "cd"], true);
         type_all(&mut s, "abwxyz");
-        let cols: Vec<usize> = s.cells(0).iter().map(|cell| cell.col).collect();
-        assert_eq!(cols, [0, 1, 2, 3, 4, 4, 5, 6, 7]);
-        assert_eq!(s.cursor_col(), 4);
+        assert_eq!(xs(&s, 0), [0.0, 1.0, 2.0, 3.0, 4.0, 4.0, 5.0, 6.0, 7.0]);
+        assert_eq!(s.cursor_x(), 4.0);
         type_all(&mut s, " c");
-        assert_eq!(s.cursor_col(), 7);
+        assert_eq!(s.cursor_x(), 7.0);
     }
 }

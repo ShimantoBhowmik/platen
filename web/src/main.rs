@@ -10,6 +10,7 @@ mod sound;
 use std::rc::Rc;
 
 use dioxus::prelude::*;
+use dioxus::web::WebEventExt;
 use gloo_timers::future::TimeoutFuture;
 use web_sys::wasm_bindgen::JsCast;
 use web_sys::{FocusOptions, HtmlElement};
@@ -160,6 +161,17 @@ fn ms_until_next_second(left_ms: f64) -> u32 {
     (left_ms - next_change).max(1.0).ceil() as u32
 }
 
+/// Copies the browser's Caps Lock state from a key event into `caps_lock`.
+///
+/// Dioxus's modifiers do not carry Caps Lock, so this reads the raw event. The signal is set
+/// only when the state changes, so an ordinary key costs no extra render.
+fn sync_caps_lock(mut caps_lock: Signal<bool>, event: &KeyboardEvent) {
+    let on = event.as_web_event().get_modifier_state("CapsLock");
+    if *caps_lock.peek() != on {
+        caps_lock.set(on);
+    }
+}
+
 fn kind_name(kind: ModeKind) -> &'static str {
     match kind {
         ModeKind::Time => "time",
@@ -196,6 +208,7 @@ fn App() -> Element {
     let mut motion = use_signal(Motion::default);
     let mut bell_line = use_signal(|| None::<usize>);
     let mut generation = use_signal(|| 0_u64);
+    let caps_lock = use_signal(|| false);
     let calm = use_hook(reduced_motion);
 
     let mut load = move |spec: ModeSpec| {
@@ -320,6 +333,7 @@ fn App() -> Element {
     };
 
     let onkeydown = move |event: KeyboardEvent| {
+        sync_caps_lock(caps_lock, &event);
         let modifiers = event.modifiers();
         if modifiers.ctrl() || modifiers.meta() || modifiers.alt() {
             return;
@@ -592,6 +606,15 @@ fn App() -> Element {
                         }
                     }
                 }
+                // The live region stays while typing and only its text changes, so screen
+                // readers announce the notice when it appears.
+                if matches!(current, Phase::Ready | Phase::Running) {
+                    div { class: "tw-caps", role: "status",
+                        if caps_lock() {
+                            span { class: "tw-caps-chip", "Caps Lock" }
+                        }
+                    }
+                }
                 div {
                     id: "tw-stage",
                     class: "tw-stage",
@@ -606,6 +629,8 @@ fn App() -> Element {
                     autofocus: true,
                     onclick: move |_| focus_stage(),
                     onkeydown,
+                    // macOS reports Caps Lock turning off only on the key's release.
+                    onkeyup: move |event: KeyboardEvent| sync_caps_lock(caps_lock, &event),
                     if let Some(report) = done.clone() {
                         ResultPlate { report, spec }
                     } else {

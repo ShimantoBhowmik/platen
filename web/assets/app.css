@@ -76,6 +76,10 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
   margin: 0 auto;
   padding: 44px 24px;
   container-type: inline-size;
+  /* The countdown's line, which the Caps Lock notice shares. Resolved where it is used, so
+     cqw measures this card. */
+  --tw-count-top: 22px;
+  --tw-count-size: clamp(36px, 5cqw, 64px);
 }
 .tw-plate .iso-plate-corner { font-size: 12px; color: var(--anatomy-text); }
 .tw-plate .tw-readout { font-size: 13px; }
@@ -103,12 +107,8 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
 }
 .tw-svg { width: 100%; height: auto; }
 .tw-plate:not(:focus-within) .tw-svg { opacity: 0.55; transition: opacity 240ms var(--anatomy-ease); }
-.tw-plate:not(:focus-within) .tw-stage::after {
-  content: "Click the machine to type";
-  position: absolute;
-  left: 50%;
-  top: 46%;
-  transform: translate(-50%, -50%);
+/* The lifted chip: the focus prompt and the Caps Lock notice. */
+.tw-plate:not(:focus-within) .tw-stage::after, .tw-caps-chip {
   padding: 8px 14px;
   background: var(--anatomy-card);
   box-shadow: 0 0 0 1px var(--anatomy-mid), var(--anatomy-lift);
@@ -116,6 +116,13 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
   font: 12px/1 var(--anatomy-mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+.tw-plate:not(:focus-within) .tw-stage::after {
+  content: "Click the machine to type";
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
 }
 
 /* Moving parts. The type element steps one cell per key; only its return and the paper feed
@@ -134,10 +141,10 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
 .tw-count {
   position: absolute;
   left: 22px;
-  top: 22px;
+  top: var(--tw-count-top);
   z-index: 1;
   margin: 0;
-  font: 700 clamp(36px, 5cqw, 64px)/1 var(--tw-type);
+  font: 700 var(--tw-count-size)/1 var(--tw-type);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   color: var(--anatomy-text);
@@ -146,6 +153,20 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
 }
 .tw-count[data-live="true"] { color: var(--anatomy-strong); }
 .tw-count-of { font-size: 0.4em; letter-spacing: 0; color: var(--anatomy-text); }
+
+/* The Caps Lock notice sits at the top right, centred on the countdown's figures so the two
+   read as one band; Courier Prime's figures centre 0.43em below the top of their line. It hides
+   with focus, since the state it shows goes stale once focus leaves. */
+.tw-caps {
+  position: absolute;
+  right: 22px;
+  top: calc(var(--tw-count-top) + var(--tw-count-size) * 0.43);
+  z-index: 1;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.tw-caps-chip { display: block; white-space: nowrap; animation: tw-fade 160ms var(--anatomy-ease) both; }
+.tw-plate:not(:focus-within) .tw-caps { display: none; }
 
 /* Fig 2, the result: the card keeps the drawing's size, so nothing jumps when it swaps in. */
 .tw-stage[data-done="true"] { cursor: default; }
@@ -296,7 +317,7 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
   .tw-stage[data-return="true"] .tw-svg { transition: transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1); }
   /* The countdown gets its own band above the cropped figure, clear of the sheet. */
   .tw-plate:has(.tw-count) { padding-top: 86px; }
-  .tw-count { top: 38px; font-size: 36px; }
+  .tw-plate { --tw-count-top: 38px; --tw-count-size: 36px; }
   .tw-stage[data-done="true"] { height: auto; overflow: visible; }
   .tw-result { padding: 8px 20px 18px; gap: 22px; }
   /* No room to float beside the point: the tip sits at the right of the band above the plot. */
@@ -320,5 +341,5 @@ html:has(.tw-page[data-theme="light"]), html:has(.tw-page[data-theme="light"]) b
 @media (prefers-reduced-motion: reduce) {
   .tw-carrier[data-return="true"], .tw-stage[data-return="true"] .tw-svg, .tw-line, .tw-key, .tw-hammer,
   .tw-seg-item, .tw-icon, .tw-count { transition: none; }
-  .tw-result, .tw-plot, .tw-marks { animation: none; }
+  .tw-result, .tw-plot, .tw-marks, .tw-caps-chip { animation: none; }
 }

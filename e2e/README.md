@@ -57,6 +57,7 @@ cluster. `PG_BIN` names the Postgres binary directory when it is not on `PATH`.
 - A 15 s time test shows three lines of copy, counts down and is scored at its limit.
 - Theme and sound choices survive a reload.
 - Typing plays the recorded typewriter clips, with a different clack for each key in a row, the space bar plays its own darker, wider clack, and backspace plays its own lighter tick.
+- A Caps Lock notice shows while Caps Lock is on, stays while typing, and goes when Caps Lock is turned off or the card loses focus.
 - Each test kind keeps the length last chosen for it.
 - On a phone, a bar button does not move the page.
 - Error states: a refused result and an unreachable server.

@@ -22,7 +22,7 @@ use crate::session::{Effect, Ink, Session, Stroke};
 use crate::sound::Cue;
 
 /// Cells before the right end of a line where the margin bell rings.
-const BELL_AT: usize = 6;
+const BELL_AT: f64 = 6.0;
 /// How long the type element stays against the platen: two frames.
 const STRIKE_MS: u32 = 34;
 /// How long a key stays down.
@@ -363,14 +363,9 @@ fn App() -> Element {
             let typed = typed.as_mut()?;
             let line_before = typed.current_line();
             let effect = typed.press(stroke, time_ms);
-            Some((
-                line_before,
-                effect,
-                typed.current_line(),
-                typed.cursor_col(),
-            ))
+            Some((line_before, effect, typed.current_line(), typed.cursor_x()))
         });
-        let Some((line_before, effect, line_after, col)) = pressed else {
+        let Some((line_before, effect, line_after, cursor)) = pressed else {
             return;
         };
         now.set(at);
@@ -389,7 +384,7 @@ fn App() -> Element {
             Stroke::Char(c) => FIGURE.key_index(c),
         };
         animate(effect, key, line_after != line_before);
-        if col + BELL_AT >= FIGURE.text.cols && bell_line() != Some(line_after) {
+        if cursor + BELL_AT >= FIGURE.text.cols as f64 && bell_line() != Some(line_after) {
             bell_line.set(Some(line_after));
             ring_bell();
         }
@@ -461,7 +456,7 @@ fn App() -> Element {
 
     let m = motion();
     let current_line = typed.as_ref().map_or(0, Session::current_line);
-    let cursor = typed.as_ref().map_or(0, Session::cursor_col);
+    let cursor = typed.as_ref().map_or(0.0, Session::cursor_x);
     let travel = FIGURE.col_x(cursor);
     let [cx, cy] = FIGURE.carrier_step;
     let carrier = format!(
@@ -755,7 +750,7 @@ fn Layer(markup: Markup) -> Element {
 /// One character cell on the sheet, drawn at baseline 0 of its line.
 #[component]
 fn SheetCell(cell: session::Cell) -> Element {
-    let x = FIGURE.col_x(cell.col);
+    let x = FIGURE.col_x(cell.x);
     let y = 0.0;
     let size = FIGURE.text.font;
     let copy = cell.copy.map(String::from).unwrap_or_default();

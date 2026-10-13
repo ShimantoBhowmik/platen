@@ -44,14 +44,16 @@ async function chooseMode(page, kind, label) {
     return words;
 }
 
-/** Cells a line of copy wraps at, read from the figure the app embeds. */
-const WRAP = JSON.parse(
+/** The sheet's text layout, read from the figure the app embeds. */
+const TEXT = JSON.parse(
     readFileSync(new URL("../../web/assets/typewriter.json", import.meta.url), "utf8"),
-).text.wrap;
+).text;
+/** Cells a line of copy wraps at. */
+const WRAP = TEXT.wrap;
 
 /**
  * The sheet's lines: as many words as fit in `WRAP` cells, the same rule the app lays the
- * copy out with.
+ * copy out with. The app justifies every line but the last, which only moves its words.
  */
 function sheetLines(words) {
     const lines = [[]];
@@ -188,6 +190,11 @@ test("a time test counts down and is scored at its limit", async ({ page }, test
     const lines = sheetLines(words);
     for (const row of [0, 1, 2]) {
         await expect(page.locator(".tw-line").nth(row)).toHaveText(lines[row].replaceAll(" ", ""));
+    }
+    // Justified: every line's last letter sits in the last wrap cell.
+    const flush = (TEXT.x0 + (WRAP - 0.5) * TEXT.cell).toFixed(2);
+    for (const row of [0, 1, 2]) {
+        await expect(page.locator(".tw-line").nth(row).locator("text").last()).toHaveAttribute("x", flush);
     }
 
     await page.locator("#tw-stage").click();

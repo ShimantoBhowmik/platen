@@ -14,7 +14,7 @@ use web_sys::{AudioBuffer, AudioContext};
 pub enum Cue {
     /// A typebar striking the platen.
     Clack,
-    /// The space bar: a muted thock as the bar lands, then the escapement tick.
+    /// The space bar: a darker, wider clack as the bar lands, then a faint escapement tick.
     Space,
     /// The carriage stepping back one notch: a soft lever tick, then the escapement pawl.
     Backspace,

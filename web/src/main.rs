@@ -332,7 +332,8 @@ fn App() -> Element {
             }
             Key::Backspace => Stroke::Back,
             Key::Character(text) => match text.chars().collect::<Vec<_>>()[..] {
-                [character] => Stroke::Char(character),
+                // A control character such as '\u{8}' would reach the server as a command.
+                [character] if !character.is_control() => Stroke::Char(character),
                 _ => return,
             },
             _ => return,

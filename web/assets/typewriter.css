@@ -35,3 +35,6 @@
 .tw-ink { fill: var(--tw-ink); font-family: var(--tw-type); font-weight: 700; }
 .tw-ink.tw-copy { fill: var(--tw-copy); font-weight: 400; }
 .tw-ink.tw-miss { fill: var(--tw-red); }
+
+/* Labels printed on the key tops, in the machine's own type. */
+.tw-key-label { fill: var(--anatomy-hi); font-family: var(--tw-type); font-weight: 700; stroke: none; }

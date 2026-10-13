@@ -6,7 +6,8 @@
 // `scripts/figure/preview.html`, a standalone page for visual and line-end checks.
 //
 // The machine is a typeball electric: the sheet and the platen stay still and a small type
-// element travels along the platen, so the whole line stays in view at a readable size.
+// element travels along the platen under the column being typed. The sheet shows three lines
+// of copy at once, and the keyboard is drawn at a real machine's scale against the paper.
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,46 +22,48 @@ const OUT = join(ASSETS, "typewriter.json");
 // words with room to spare.
 const CELL = 12.5;
 const COLS = 80;
-const LINE_H = 23;
+const LINE_H = 32;
 const FONT = 21;
 const MARGIN = 18;
+// Lines of copy shown on the sheet at once.
+const ROWS = 3;
 // Lines are laid out a few cells short of the paper, so extra letters never push copy off it.
 const WRAP = COLS - 4;
 const PAPER_W = COLS * CELL + MARGIN * 2;
 
-// Platen and print line.
+// Platen, the strike point on the card holder below the copy, and the three rows of copy.
 const PLATEN = { y: -70, z: 86, r: 15, half: PAPER_W / 2 + 26 };
 const SHEET_Y = PLATEN.y + PLATEN.r + 0.6;
 const PRINT_Z = PLATEN.z;
-const BASELINE_Z = PRINT_Z - 3.5;
-const SHEET_TOP = PRINT_Z + 3.5 + LINE_H * 3 + 18;
+const BAIL_Z = PLATEN.z + PLATEN.r + 2;
+const LAST_BASELINE_Z = BAIL_Z + 18;
+const FIRST_BASELINE_Z = LAST_BASELINE_Z + LINE_H * (ROWS - 1);
+const SHEET_TOP = FIRST_BASELINE_Z + FONT + 18;
 const SHEET_BOTTOM = PRINT_Z - 14;
 
-// Copy holder: a card on a stand behind the machine carrying the next lines of practice copy.
-const COPY = { y: -108, z0: SHEET_TOP - 30, z1: SHEET_TOP + 58, font: 17, line_h: 21 };
-COPY.cell = (CELL * COPY.font) / FONT;
+// Keyboard: four staggered rows of round keys on stems, rising toward the back, at a real
+// machine's scale against the sheet: the rows span most of the paper's width.
+const KEY_PITCH = 68;
+const KEY_R = 25;
+const KEY_ROW = 62;
+const KEY_ROWS = ["1234567890", "qwertyuiop", "asdfghjkl;", "zxcvbnm,./"].map((chars, i) => ({
+  chars,
+  y: 52 + i * KEY_ROW,
+  x0: -4.5 * KEY_PITCH - 20 + i * 18,
+  top: 78 - i * 8,
+}));
+const SPACE = { x: -230, y: 52 + 4 * KEY_ROW - 6, w: 460, d: 22, r: 10, z: 48 };
 
 // Body and bench: as wide as the platen, since the type element travels its whole length.
 const BODY_HALF = PLATEN.half + 34;
-const BODY = { x: -BODY_HALF, y: -96, w: BODY_HALF * 2, d: 236, r: 18 };
-const BASE = { x: -BODY_HALF - 26, y: -120, w: BODY_HALF * 2 + 52, d: 278, r: 12 };
+const BODY = { x: -BODY_HALF, y: -96, w: BODY_HALF * 2, d: SPACE.y + SPACE.d + 128, r: 22 };
+const BASE = { x: -BODY_HALF - 26, y: -120, w: BODY_HALF * 2 + 52, d: BODY.d + 52, r: 14 };
 const BASE_H = 9;
 const FOOT_H = 5;
 const BODY_H = 30;
 const REAR = { x: BODY.x, y: -96, w: BODY.w, d: 36, r: 12 };
 const REAR_TOP = 66;
 const DECK_Z = BODY_H + 4;
-
-// Keyboard: four staggered rows of round keys on stems, rising toward the back.
-const KEY_PITCH = 26;
-const KEY_R = 9.5;
-const ROWS = [
-  { chars: "1234567890", y: 34, x0: -130, top: 62 },
-  { chars: "qwertyuiop", y: 57, x0: -122, top: 57 },
-  { chars: "asdfghjkl;", y: 80, x0: -114, top: 52 },
-  { chars: "zxcvbnm,./", y: 103, x0: -106, top: 47 },
-];
-const SPACE = { x: -112, y: 120, w: 224, d: 9, r: 4.5, z: 42 };
 
 // The type element's carrier rides two rails between the platen and the keyboard. It is drawn
 // at x = 0 and moved along x to each column.
@@ -81,8 +84,6 @@ const extent = [
   ...k.boxCorners(BASE, -BASE_H - FOOT_H, 0),
   [-PAPER_W / 2, SHEET_Y, SHEET_TOP],
   [PAPER_W / 2, SHEET_Y, SHEET_TOP],
-  [-PAPER_W / 2 - 8, COPY.y, COPY.z1],
-  [PAPER_W / 2 + 8, COPY.y, COPY.z1],
 ];
 const HEIGHT = (() => {
   const unit = { origin: [0, 0], scale: 1, azimuth: AZIMUTH };
@@ -155,12 +156,12 @@ function body() {
     out.push(`<g transform="${planeOf(front)}">${L(slots.join(""), { tone: "faint" })}</g>`);
   }
   // Deck plate the keys and the carrier rails sit on.
-  const deck = { x: BODY.x + 10, y: -60, w: BODY.w - 20, d: 192, r: 12 };
+  const deck = { x: BODY.x + 10, y: -60, w: BODY.w - 20, d: BODY.d - 60, r: 14 };
   out.push(S(k.slabOf(deck, BODY_H, DECK_Z - BODY_H, P, 6, 0.8), { tone: "mid" }));
   out.push(L(k.planOutline(k.insetPlan(deck, 4), DECK_Z, P, 6), { tone: "faint" }));
   out.push(D(k.corners(deck, 7).map(([x, y]) => at([x, y, DECK_Z])), { size: 0.5 }));
   // Keyboard well: a recessed panel framing the keys.
-  const well = { x: -176, y: 18, w: 352, d: 120, r: 10 };
+  const well = { x: -6.5 * KEY_PITCH, y: KEY_ROWS[0].y - KEY_R - 14, w: 13 * KEY_PITCH, d: SPACE.y + SPACE.d + 18 - (KEY_ROWS[0].y - KEY_R - 14), r: 16 };
   out.push(L(k.planOutline(well, DECK_Z, P, 6), { tone: "lo" }));
   // Side cheeks at each end that carry the rails, and the controls on their tops.
   for (const x of [BODY.x + 10, BODY.x + BODY.w - 40]) {
@@ -170,12 +171,12 @@ function body() {
     out.push(D([at([x + 15, -52, DECK_Z + 26]), at([x + 15, 6, DECK_Z + 26])], { size: 0.5 }));
   }
   // Power rocker on the right of the deck, in front of the cheek.
-  const rocker = { x: BODY.x + BODY.w - 74, y: 46, w: 34, d: 16, r: 3 };
+  const rocker = { x: BODY.x + BODY.w - 84, y: 60, w: 40, d: 20, r: 3 };
   out.push(S(k.slabOf(rocker, DECK_Z, 3, P, 4, 0.4), { tone: "hi", crease: "lo" }));
   out.push(L(k.lineOnTop([rocker.x + rocker.w / 2, rocker.y + 3], [rocker.x + rocker.w / 2, rocker.y + rocker.d - 3], DECK_Z + 3, P), { tone: "lo" }));
   // Tab and margin release keys on the left, a pair of small square caps.
-  for (const [i, x] of [BODY.x + 44, BODY.x + 74].entries()) {
-    const cap = { x, y: 50 + i * 0, w: 22, d: 14, r: 2.4 };
+  for (const x of [BODY.x + 44, BODY.x + 78]) {
+    const cap = { x, y: 60, w: 26, d: 18, r: 2.4 };
     out.push(S(k.slabOf(cap, DECK_Z, 4, P, 4, 0.4), { tone: "hi", crease: "lo" }));
   }
   return out.join("");
@@ -271,28 +272,10 @@ function sheet() {
   return `<g transform="${planeOf(SHEET_Y)}"><path class="tw-sheet" d="${shape}"/><path class="tw-sheet-shade" d="${curl}"/><path class="tw-sheet-edge" d="${shape}"/></g>`;
 }
 
-function copyHolder() {
-  const out = [];
-  const half = PAPER_W / 2 + 8;
-  // Three posts on the bench behind the body, each in a foot block.
-  for (const x of [-half + 26, 0, half - 26]) {
-    out.push(S(k.slabOf({ x: x - 7, y: COPY.y - 6, w: 14, d: 10, r: 2 }, 0, 6, P, 4, 0.5), { tone: "mid" }));
-    out.push(S(k.cylinder(x, COPY.y - 1, 2.4, 6, COPY.z0 - 6, P, 16), { tone: "lo", crease: "none" }));
-  }
-  const board = { x: -half, y: COPY.y, w: half * 2, d: 3, r: 1.2 };
-  out.push(S(k.slabOf(board, COPY.z0, COPY.z1 - COPY.z0, P, 3, 0.5), { tone: "mid" }));
-  out.push(`<g transform="${planeOf(COPY.y + 3)}">`);
-  const card = flatRect(-half + 6, COPY.z0 + 6, half - 6, COPY.z1 - 6, 1, 2);
-  out.push(`<path class="tw-sheet" d="${card}"/><path class="tw-sheet-edge" d="${card}"/>`);
-  out.push(`</g>`);
-  out.push(D([[-half + 3, COPY.z1 - 3], [half - 3, COPY.z1 - 3]].map(([x, z]) => at([x, COPY.y + 3, z])), { size: 0.5 }));
-  return out.join("");
-}
-
 function bail() {
   const out = [];
   // Paper bail: a rod across the sheet between two printed lines, on arms to the end plates.
-  const bailZ = BASELINE_Z + LINE_H + 13.5;
+  const bailZ = BAIL_Z;
   const y = SHEET_Y + 2.2;
   for (const side of [-1, 1]) {
     out.push(S(rod([side * (PLATEN.half + 12), PLATEN.y + 6, PLATEN.z + 12], [side * (PLATEN.half - 2), y, bailZ], 1.1), { tone: "mid" }));
@@ -384,33 +367,39 @@ function ball() {
 
 function keys() {
   const list = [];
-  for (const row of ROWS) {
+  for (const row of KEY_ROWS) {
     [...row.chars].forEach((char, i) => {
       const x = row.x0 + i * KEY_PITCH;
       list.push({ char, x, y: row.y, top: row.top });
     });
   }
+  const [r0, , r2, r3] = KEY_ROWS;
   const extra = [
-    { char: "Shift", x: ROWS[3].x0 - KEY_PITCH - 4, y: ROWS[3].y, top: ROWS[3].top },
-    { char: "ShiftRight", x: ROWS[3].x0 + 10 * KEY_PITCH + 4, y: ROWS[3].y, top: ROWS[3].top },
-    { char: "Backspace", x: ROWS[0].x0 + 10 * KEY_PITCH + 3, y: ROWS[0].y, top: ROWS[0].top },
-    { char: "Enter", x: ROWS[2].x0 + 10 * KEY_PITCH + 4, y: ROWS[2].y, top: ROWS[2].top },
+    { char: "Shift", label: "shift", x: r3.x0 - KEY_PITCH - 6, y: r3.y, top: r3.top },
+    { char: "ShiftRight", label: "shift", x: r3.x0 + 10 * KEY_PITCH + 6, y: r3.y, top: r3.top },
+    { char: "Backspace", label: "back", x: r0.x0 + 10 * KEY_PITCH + 4, y: r0.y, top: r0.top },
+    { char: "Enter", label: "return", x: r2.x0 + 10 * KEY_PITCH + 6, y: r2.y, top: r2.top },
   ];
   const all = [...list, ...extra].sort((a, b) => depth([a.x, a.y, a.top]) - depth([b.x, b.y, b.top]));
-  return all.map(({ char, x, y, top }) => {
-    const stem = S(k.cylinder(x, y, 2, DECK_Z, top - 3 - DECK_Z, P, 12), { tone: "lo", crease: "none" });
-    const rim = S(k.cylinder(x, y, KEY_R, top - 3, 1.6, P, 32), { tone: "hi", crease: "lo" });
-    const cap = S(k.cylinder(x, y, KEY_R - 1.1, top - 1.4, 1.4, P, 32, 0.4), { tone: "mid" });
-    const dish = L(k.ring(x, y, KEY_R - 3, top, P, 24), { tone: "faint" });
-    return { char, svg: stem + rim + cap + dish };
+  return all.map(({ char, label, x, y, top }) => {
+    const stem = S(k.cylinder(x, y, 3.4, DECK_Z, top - 4 - DECK_Z, P, 16), { tone: "lo", crease: "none" });
+    const rim = S(k.cylinder(x, y, KEY_R, top - 4, 2.4, P, 48), { tone: "hi", crease: "lo" });
+    const cap = S(k.cylinder(x, y, KEY_R - 2, top - 2, 2, P, 48, 0.6), { tone: "mid" });
+    const dish = L(k.ring(x, y, KEY_R - 6, top, P, 40), { tone: "faint" });
+    // The legend is printed on the key top, so it lies in the top plane and sinks with the key.
+    const text = label ?? char.toUpperCase();
+    const size = label ? 9 : 19;
+    const legend = `<text class="tw-key-label" transform="${k.topMatrix([x, y], top, P)}" font-size="${size}" text-anchor="middle" y="${size * 0.36}">${text}</text>`;
+    return { char, svg: stem + rim + cap + dish + legend };
   });
 }
 
 function spaceBar() {
-  const arms = [SPACE.x + 20, SPACE.x + SPACE.w - 22].map((x) =>
-    S(k.slabOf({ x, y: ROWS[3].y + 6, w: 2.4, d: SPACE.y - ROWS[3].y - 4, r: 0.6 }, DECK_Z, SPACE.z - DECK_Z - 2, P, 2), { tone: "lo" }),
+  const last = KEY_ROWS[KEY_ROWS.length - 1];
+  const arms = [SPACE.x + 40, SPACE.x + SPACE.w - 44].map((x) =>
+    S(k.slabOf({ x, y: last.y + 10, w: 4, d: SPACE.y - last.y - 8, r: 1 }, DECK_Z, SPACE.z - DECK_Z - 3, P, 2), { tone: "lo" }),
   );
-  return arms.join("") + S(k.slabOf(SPACE, SPACE.z - 2, 3.4, P, 4, 0.5), { tone: "hi", crease: "lo" });
+  return arms.join("") + S(k.slabOf(SPACE, SPACE.z - 3, 5, P, 6, 0.8), { tone: "hi", crease: "lo" });
 }
 
 const figure = {
@@ -418,7 +407,7 @@ const figure = {
   height: HEIGHT,
   label:
     "A wide electric typewriter on a bench plate, seen from the front: a long body with forty round keys and a space bar, a rubber platen with knurled knobs, a scale bar and a paper bail, and a type element on a carrier that travels along the platen. The sheet in the platen carries the test text.",
-  back: [bench(), copyHolder(), body(), rearHousing(), bell()].join(""),
+  back: [bench(), body(), rearHousing(), bell()].join(""),
   hammer: hammer(),
   platen: platen(),
   sheet: sheet(),
@@ -436,10 +425,20 @@ const figure = {
   ball_strike: k.axisVector(P, [0, -3.2, 1]),
   hammer_swing: k.axisVector(P, [2.2, 0, 0.6]),
   paper_matrix: planeOf(SHEET_Y + 0.05),
-  copy_matrix: planeOf(COPY.y + 3.05),
-  copy: { x0: -PAPER_W / 2 + MARGIN, cell: COPY.cell, font: COPY.font, baselines: [-(SHEET_TOP + 8 + COPY.line_h), -(SHEET_TOP + 8)] },
-  strike_at: [at([0, SHEET_Y, PRINT_Z])[0] / WIDTH, at([0, SHEET_Y, PRINT_Z])[1] / HEIGHT],
-  text: { x0: colLeft(0), cell: CELL, cols: COLS, wrap: WRAP, margin: MARGIN, line_h: LINE_H, font: FONT, baseline: -BASELINE_Z, top: -SHEET_TOP },
+  strike_at: [at([0, SHEET_Y, PRINT_Z])[0] / WIDTH, at([0, SHEET_Y, FIRST_BASELINE_Z - LINE_H])[1] / HEIGHT],
+  text: {
+    x0: colLeft(0),
+    cell: CELL,
+    cols: COLS,
+    wrap: WRAP,
+    margin: MARGIN,
+    line_h: LINE_H,
+    font: FONT,
+    rows: ROWS,
+    baseline: -FIRST_BASELINE_Z,
+    top: -(FIRST_BASELINE_Z + FONT - 2),
+    bottom: -(LAST_BASELINE_Z - 8),
+  },
 };
 
 writeFileSync(OUT, JSON.stringify(figure));
@@ -452,8 +451,13 @@ if (process.argv.includes("--preview")) {
   const [sx, sy] = figure.carrier_step;
   const x = colLeft(col) + CELL / 2;
   const text = "the quick brown fox jumps over the lazy dog while seven people watch from far away";
-  const glyphs = [...text.slice(0, WRAP)]
-    .map((c, i) => `<text class="tw-ink${i < col ? "" : " tw-copy"}" x="${colLeft(i) + CELL / 2}" y="${-BASELINE_Z}" font-size="${FONT}" text-anchor="middle">${c === " " ? "" : c}</text>`)
+  const glyphs = [0, 1, 2]
+    .flatMap((row) =>
+      [...text.slice(0, WRAP)].map(
+        (c, i) =>
+          `<text class="tw-ink${row === 0 && i < col ? "" : " tw-copy"}" x="${colLeft(i) + CELL / 2}" y="${-FIRST_BASELINE_Z + row * LINE_H}" font-size="${FONT}" text-anchor="middle">${c === " " ? "" : c}</text>`,
+      ),
+    )
     .join("");
   const svg = k.figureSvg({
     width: WIDTH,

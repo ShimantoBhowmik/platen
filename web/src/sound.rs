@@ -14,7 +14,7 @@ use web_sys::{AudioBuffer, AudioContext};
 pub enum Cue {
     /// A typebar striking the platen.
     Clack,
-    /// The space bar.
+    /// The space bar: a muted thock as the bar lands, then the escapement tick.
     Space,
     /// The carriage stepping back one notch: a soft lever tick, then the escapement pawl.
     Backspace,
@@ -151,6 +151,16 @@ mod tests {
             assert!(onset.iter().any(|s| s.abs() > peak * 0.2));
             assert!(data[data.len() - 100..].iter().all(|s| s.abs() < 0.01));
         }
+    }
+
+    #[test]
+    fn space_is_softer_than_any_key_strike() {
+        let peak = |pcm: &[u8]| samples(pcm).iter().fold(0.0_f32, |max, s| max.max(s.abs()));
+
+        let quietest_clack = CLACKS.into_iter().map(peak).fold(f32::MAX, f32::min);
+
+        // The space bar strikes no paper; it must not sound like a key hit.
+        assert!(peak(SPACE) < quietest_clack, "space peak {}", peak(SPACE));
     }
 
     #[test]

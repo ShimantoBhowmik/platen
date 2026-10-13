@@ -254,9 +254,11 @@ test("typing plays the recorded typewriter clips", async ({ page }, testInfo) =>
     await expect.poll(() => page.evaluate(() => window.played.length)).toBe(keys.length + 1);
     const played = await page.evaluate(() => window.played);
     const backspace = played.pop();
-    // Clacks and the space bar are 160 ms cuts of the recording; the backspace is a lighter
-    // 120 ms tick, not the space bar's thump.
+    const [space] = played.splice(words[0].length, 1);
+    // Clacks are 160 ms cuts of the recording; the space bar is a 70 ms thock and tick, and the
+    // backspace a lighter 120 ms tick.
     for (const clip of played) expect(clip.seconds).toBeCloseTo(0.16, 3);
+    expect(space.seconds).toBeCloseTo(0.07, 3);
     expect(backspace.seconds).toBeCloseTo(0.12, 3);
     const clacks = new Set(played.slice(0, words[0].length).map((clip) => clip.sample));
     expect(clacks.size, "consecutive keys use different clack variants").toBe(

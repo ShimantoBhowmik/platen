@@ -152,4 +152,20 @@ mod tests {
             assert!(data[data.len() - 100..].iter().all(|s| s.abs() < 0.01));
         }
     }
+
+    #[test]
+    fn return_knocks_while_the_carriage_lands() {
+        let data = samples(RETURN);
+
+        // The carriage slides back in 380 ms (app.css); the stop knock, the loudest sample,
+        // must land with it, not seconds later.
+        let knock = data
+            .iter()
+            .enumerate()
+            .max_by(|a, b| a.1.abs().total_cmp(&b.1.abs()))
+            .map(|(index, _)| index as f32 / RATE)
+            .expect("the return clip is not empty");
+        assert!((0.25..=0.45).contains(&knock), "knock at {knock} s");
+        assert!(data.len() as f32 / RATE < 0.6);
+    }
 }

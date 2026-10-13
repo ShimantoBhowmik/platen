@@ -134,8 +134,14 @@ impl TestMode {
     pub const fn word_count(self) -> usize {
         let spec = self.spec();
         match spec.mode {
-            ModeKind::Time => (spec.amount as u32 * MAX_KEYSTROKE_WPM * 5)
-                .div_ceil(60 * MIN_KEYSTROKES_PER_WORD) as usize,
+            ModeKind::Time => {
+                // The most keystrokes a typist under the cap fits in the test.
+                let budget = spec.amount as u32 * MAX_KEYSTROKE_WPM * 5 / 60;
+                // `n` words take at least `n * MIN_KEYSTROKES_PER_WORD - 1` keystrokes, since
+                // the last word ends without a space. This is the fewest words that need more
+                // than the budget.
+                ((budget + 1) / MIN_KEYSTROKES_PER_WORD + 1) as usize
+            }
             ModeKind::Words => spec.amount as usize,
         }
     }
@@ -192,8 +198,24 @@ mod tests {
     #[test]
     fn time_mode_has_limit_and_enough_words() {
         assert_eq!(TestMode::Time60.time_limit_ms(), Some(60_000));
-        assert_eq!(TestMode::Time60.word_count(), 875);
-        assert_eq!(TestMode::Time15.word_count(), 219);
+        assert_eq!(TestMode::Time60.word_count(), 876);
+        assert_eq!(TestMode::Time15.word_count(), 220);
+    }
+
+    #[test]
+    fn time_text_needs_more_keystrokes_than_the_cap_allows() {
+        for mode in TestMode::ALL {
+            let Some(limit_ms) = mode.time_limit_ms() else {
+                continue;
+            };
+            // One-letter words with a space between each pair, and none after the last.
+            let fewest_keystrokes = mode.word_count() as u32 * MIN_KEYSTROKES_PER_WORD - 1;
+            let wpm = f64::from(fewest_keystrokes) / 5.0 / (f64::from(limit_ms) / 60_000.0);
+            assert!(
+                wpm > f64::from(MAX_KEYSTROKE_WPM),
+                "{mode:?} ends at {wpm} WPM"
+            );
+        }
     }
 
     #[test]

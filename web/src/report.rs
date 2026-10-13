@@ -88,7 +88,7 @@ pub fn ResultPlate(report: Rc<Report>, spec: ModeSpec) -> Element {
                 div {
                     dt { "test" }
                     dd { "{test_kind} {test_amount}" }
-                    dd { class: "tw-sub", "english 1k" }
+                    dd { class: "tw-sub", "english 200" }
                 }
                 div {
                     dt { "raw" }

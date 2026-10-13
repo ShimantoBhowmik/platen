@@ -96,7 +96,8 @@ pub struct Breakdown {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct TimelinePoint {
     /// WPM from the start of the test to the end of this second, counted like
-    /// [`TestStats::wpm`]. The last point equals the test's WPM.
+    /// [`TestStats::wpm`]. The last point runs to the end of the test, so it equals the test's
+    /// WPM.
     pub wpm: f64,
     /// Raw WPM of the character keys typed in this second alone, rounded to a whole number.
     /// These values are what [`TestStats::consistency`] measures.
@@ -124,7 +125,8 @@ pub struct Scored {
 struct SecondMark {
     /// Zero-based second of the test, from [`second_of`].
     second: u32,
-    /// Character keys (not backspace) typed in this second.
+    /// Keystrokes in this second that the score counts: character keys, but not backspaces or
+    /// ignored spaces.
     chars: u32,
     /// Character keys in this second that did not match the text.
     errors: u32,
@@ -274,29 +276,32 @@ fn timeline(
     let whole_seconds = elapsed_ms / 1_000;
     let tail_ms = elapsed_ms % 1_000;
     let has_tail = scores_partial_second && tail_ms >= 500;
+    let points = whole_seconds + u32::from(has_tail);
     // Index of the first mark not yet consumed. Marks ascend, so one forward pass pairs them.
     let mut next = 0;
-    (0..whole_seconds + u32::from(has_tail))
+    (0..points)
         .map(|second| {
             let here = marks.get(next).filter(|mark| mark.second == second);
             if here.is_some() {
                 next += 1;
             }
-            // The next second with keys starts from what this second ended with.
-            let correct_chars = marks
-                .get(next)
-                .map_or(final_correct_chars, |mark| mark.correct_chars_before);
-            let (span_s, through_s) = if second < whole_seconds {
-                (1.0, f64::from(second + 1))
+            let (correct_chars, through_ms) = if second + 1 == points {
+                (final_correct_chars, elapsed_ms)
             } else {
-                let tail_s = f64::from(tail_ms) / 1_000.0;
-                (tail_s, f64::from(whole_seconds) + tail_s)
+                // The next second with keys starts from what this second ended with.
+                let correct_chars = marks
+                    .get(next)
+                    .map_or(final_correct_chars, |mark| mark.correct_chars_before);
+                (correct_chars, (second + 1) * 1_000)
             };
-            // Characters / 5 per minute is characters * 12 per second.
-            let per_minute = |chars: u32, seconds: f64| f64::from(chars) * 12.0 / seconds;
+            let span_ms = if second < whole_seconds {
+                1_000
+            } else {
+                tail_ms
+            };
             TimelinePoint {
-                wpm: round2(per_minute(correct_chars, through_s)),
-                raw_wpm: per_minute(here.map_or(0, |mark| mark.chars), span_s).round(),
+                wpm: round2(words_per_minute(correct_chars, through_ms)),
+                raw_wpm: words_per_minute(here.map_or(0, |mark| mark.chars), span_ms).round(),
                 errors: here.map_or(0, |mark| mark.errors),
             }
         })
@@ -447,11 +452,6 @@ impl<'t> Replay<'t> {
                     ..SecondMark::default()
                 });
             }
-            if key != BACKSPACE
-                && let Some(mark) = replay.seconds.last_mut()
-            {
-                mark.chars += 1;
-            }
 
             finished = match key {
                 BACKSPACE => {
@@ -506,10 +506,11 @@ impl<'t> Replay<'t> {
             if let Some(tally) = tally {
                 tally.misses += 1;
             }
-            // Keys are recorded only inside the replay loop, after it marked their second.
-            if let Some(mark) = self.seconds.last_mut() {
-                mark.errors += 1;
-            }
+        }
+        // Keys are recorded only inside the replay loop, after it marked their second.
+        if let Some(mark) = self.seconds.last_mut() {
+            mark.chars += 1;
+            mark.errors += u32::from(!correct);
         }
     }
 
@@ -632,8 +633,9 @@ impl<'t> Replay<'t> {
     }
 
     /// Characters left in the final text, right or wrong, including the spaces between words.
-    fn final_chars(&self) -> usize {
-        self.typed.chars().count() + usize::from(self.ended_on_space)
+    fn final_chars(&self) -> u32 {
+        // Each character came from a keystroke, and keystrokes are bounded by MAX_KEYSTROKES.
+        self.typed.chars().count() as u32 + u32::from(self.ended_on_space)
     }
 
     /// Applies the speed and rhythm checks, then computes the scores.
@@ -648,9 +650,7 @@ impl<'t> Replay<'t> {
         if self.elapsed_ms == 0 {
             return Err(Rejection::TooFast);
         }
-        let minutes = f64::from(self.elapsed_ms) / 60_000.0;
-        let words_per_minute = |chars: f64| chars / 5.0 / minutes;
-        if words_per_minute(f64::from(typed_keystrokes)) > f64::from(MAX_KEYSTROKE_WPM) {
+        if words_per_minute(typed_keystrokes, self.elapsed_ms) > f64::from(MAX_KEYSTROKE_WPM) {
             return Err(Rejection::TooFast);
         }
         let interval_cv = self.intervals.coefficient_of_variation();
@@ -668,8 +668,8 @@ impl<'t> Replay<'t> {
             scores_partial_second,
         );
         let stats = TestStats {
-            wpm: round2(words_per_minute(f64::from(correct_chars))),
-            raw_wpm: round2(words_per_minute(self.final_chars() as f64)),
+            wpm: round2(words_per_minute(correct_chars, self.elapsed_ms)),
+            raw_wpm: round2(words_per_minute(self.final_chars(), self.elapsed_ms)),
             accuracy: round2(
                 f64::from(self.correct_keystrokes) * 100.0 / f64::from(typed_keystrokes),
             ),
@@ -684,6 +684,12 @@ impl<'t> Replay<'t> {
             timeline,
         })
     }
+}
+
+/// Words of five characters per minute. The timeline and the stats share it, so the last
+/// point of the timeline and the test's WPM are the same number.
+fn words_per_minute(chars: u32, ms: u32) -> f64 {
+    f64::from(chars) / 5.0 / (f64::from(ms) / 60_000.0)
 }
 
 fn round2(value: f64) -> f64 {
@@ -1311,6 +1317,47 @@ mod tests {
         let credited = f64::from(first.len() as u32 + 1);
         assert_eq!(timeline[1].wpm, round2(credited * 12.0 / 2.0));
         assert_eq!(timeline[14].wpm, scored.stats.wpm);
+    }
+
+    #[test]
+    fn ignored_spaces_do_not_count_toward_raw_speed() {
+        let word = targets(TestMode::Time15)[0];
+        // The first space commits the word; the four after it come before any letter of the
+        // next word, so the replay ignores them.
+        let keys = format!("{word}     ");
+        let times: Vec<u32> = (0..keys.len() as u32)
+            .map(|index| 40 + index * 61 + index % 3 * 17)
+            .collect();
+
+        let scored = score_late(TestMode::Time15, &keys, &times).expect("valid submission");
+
+        let counted = word.len() as u32 + 1;
+        assert_eq!(
+            scored.stats.correct_keystrokes + scored.stats.incorrect_keystrokes,
+            counted
+        );
+        assert_eq!(scored.timeline[0].raw_wpm, f64::from(counted * 12));
+    }
+
+    #[test]
+    fn last_point_includes_keys_of_an_unscored_partial_second() {
+        let keys = perfect_keys(&targets(TestMode::Words10));
+        let mut times = human_times(keys.len());
+        // End the test 300 ms into a second, too short for that second to get its own point.
+        let last = times.len() - 1;
+        times[last] = (times[last - 1] / 1_000 + 1) * 1_000 + 300;
+
+        let scored = score_late(TestMode::Words10, &keys, &times).expect("valid submission");
+
+        assert_eq!(
+            scored.timeline.len(),
+            (scored.stats.elapsed_ms / 1_000) as usize
+        );
+        let last_point = scored
+            .timeline
+            .last()
+            .expect("the test lasts over a second");
+        assert_eq!(last_point.wpm, scored.stats.wpm);
     }
 
     #[test]

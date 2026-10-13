@@ -27,7 +27,7 @@ export function timesFrom(gaps) {
 }
 
 /** A letter that differs from `letter`, for typing a deliberate mistake. */
-export function wrongLetter(letter) {
+function wrongLetter(letter) {
     return letter === "z" ? "q" : "z";
 }
 

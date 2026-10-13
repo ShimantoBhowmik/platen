@@ -81,7 +81,6 @@ function run(command, args, { cwd = ROOT, env = ENV, quiet = false } = {}) {
         const output = quiet ? `\n${result.stdout}${result.stderr}` : "";
         throw new Error(`${command} ${args.join(" ")} exited with ${result.status}${output}`);
     }
-    return result.stdout;
 }
 
 /** A free TCP port on the loopback interface. */
@@ -227,7 +226,7 @@ function runChecks(baseUrl) {
     if (options.headed) args.push("--headed");
     const checks = spawnSync("npx", args, {
         cwd: HERE,
-        env: { ...ENV, BASE_URL: baseUrl, E2E_WEB: options.web },
+        env: { ...ENV, BASE_URL: baseUrl },
         stdio: "inherit",
     });
     return checks.status ?? 1;

@@ -2,8 +2,9 @@
 //
 // Run with `node scripts/figure/build.mjs`. It writes `web/assets/typewriter.json`: static SVG
 // layers drawn with the vendored anatomy kit, plus the numbers the Rust app needs to move the
-// type element, sink keys and set text on the sheet. Add `--preview` to also write
-// `scripts/figure/preview.html`, a standalone page for visual and line-end checks.
+// type element, sink keys and set text on the sheet. It also writes the kit's stylesheet to
+// `web/assets/iso.css`. Add `--preview` to also write `scripts/figure/preview.html`, a
+// standalone page for visual and line-end checks (`preview-light.html` with `--light`).
 //
 // The machine is a typeball electric: the sheet and the platen stay still and a small type
 // element travels along the platen under the column being typed. The sheet shows three lines

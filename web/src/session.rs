@@ -21,13 +21,13 @@ pub enum Stroke {
 pub enum Effect {
     /// Nothing changed: a space before any letter, or input after the end.
     Ignored,
-    /// A character printed in this cell; `correct` picks the ribbon colour.
-    Struck { correct: bool },
-    /// A space moved the type element one cell; `correct` is whether the word matched.
-    Spaced { correct: bool },
+    /// A character printed in the next cell.
+    Struck,
+    /// A space moved the type element one cell.
+    Spaced,
     /// The type element stepped back.
     Backed,
-    /// The test is over (the last word of a word test).
+    /// The test is over: the last word was typed exactly (word test) or spaced past.
     Finished,
 }
 
@@ -159,28 +159,25 @@ impl Session {
     }
 
     fn character(&mut self, character: char) -> Effect {
-        let position = self.current().chars().count();
-        let correct = self.target().chars().nth(position) == Some(character);
         let index = self.word_index();
         self.inputs[index].push(character);
         if self.finishes_on_last_word && self.is_last_word() && self.current() == self.target() {
             self.finished = true;
             return Effect::Finished;
         }
-        Effect::Struck { correct }
+        Effect::Struck
     }
 
     fn space(&mut self) -> Effect {
         if self.current().is_empty() {
             return Effect::Ignored;
         }
-        let correct = self.current() == self.target();
         if self.is_last_word() {
             self.finished = true;
             return Effect::Finished;
         }
         self.inputs.push(String::new());
-        Effect::Spaced { correct }
+        Effect::Spaced
     }
 
     fn backspace(&mut self) -> Effect {

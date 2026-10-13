@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// Whether a test is timed or counted in words.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ModeKind {
     /// Ends after `amount` seconds.
@@ -15,7 +15,7 @@ pub enum ModeKind {
 }
 
 /// A test mode as the server names it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct ModeSpec {
     /// Timed or counted.
     pub mode: ModeKind,

@@ -15,7 +15,7 @@ axum = { version = "0.8.9", features = ["macros"] }
 # URL-safe encoding of signed test tokens.
 base64 = "0.22"
 # Timestamps for stored results.
-chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde", "std"] }
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde"] }
 # Loads `.env` for local development.
 dotenvy = "0.15"
 # Keyed MAC that signs test tokens.

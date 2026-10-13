@@ -267,13 +267,21 @@ def run (mode : TestMode) (targets : List (List Char)) (keys : List Char) (times
     | some limitMs => .ok { r with elapsedMs := limitMs, finished := fin }
     | none => if fin then .ok { r with finished := fin } else .error .incomplete
 
-/-- The integer checks of `Replay::into_scored`: `Empty`, a zero duration, and the speed cap.
-The rhythm check and the score arithmetic are not modelled. -/
+/-- The integer checks of `Replay::into_scored`: `Empty`, a zero scored duration, and the speed
+cap over the scored duration. The rhythm check and the score arithmetic are not modelled. -/
 def intoScoredChecks (r : Replay) : Except Rejection Unit :=
   if r.keys = 0 then .error .empty
-  else if r.elapsedMs = 0 then .error .tooFast
-  else if ¬ underCap r.keys r.elapsedMs then .error .tooFast
-  else .ok ()
+  else
+    let scored := scoredMs r.elapsedMs
+    if scored = 0 then .error .tooFast
+    else if ¬ underCap r.keys scored then .error .tooFast
+    else .ok ()
+
+/-- Time limits are whole seconds, so the rounding leaves them alone: the duration
+`tooFast_sound` speaks of is the one `into_scored` checks. -/
+theorem scoredMs_timeLimit (m : TestMode) {limitMs : Nat} (hm : m.timeLimitMs = some limitMs) :
+    scoredMs limitMs = limitMs := by
+  cases m <;> simp [TestMode.timeLimitMs, TestMode.spec] at hm <;> subst hm <;> decide
 
 /-! ## Conformance checks
 
@@ -342,6 +350,11 @@ ends the test on "cx" is a miss even though "cx" is full length. -/
 
 /-! A time test that reaches the end of its text is `TooFast`. -/
 #guard runPaced .time15 ["ab", "cd"] "ab cd" matches .error .tooFast
+
+/-! `into_scored` checks the scored duration: one key in 4 ms rounds to no time at all, and the
+same key over 995 ms is scored over a whole second. -/
+#guard intoScoredChecks { init with correctKeystrokes := 1, elapsedMs := 4 } matches .error .tooFast
+#guard intoScoredChecks { init with correctKeystrokes := 1, elapsedMs := 995 } matches .ok ()
 
 /-! `wrong_last_word_ends_test_without_credit`: the committed words pair with their targets. -/
 #guard okWith (runPaced .words10 ["ab", "cd"] "ab c ") fun r =>

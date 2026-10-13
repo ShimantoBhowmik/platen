@@ -1,8 +1,9 @@
 /-!
-# Per-second marks (`server/src/scoring.rs`)
+# Per-second marks and the scored duration (`server/src/scoring.rs`)
 
 The record `Replay::run` keeps for each second that has keys, and that `timeline` turns into
-the speed chart. Shared by `Platen.Replay` and `Platen.Timeline`.
+the speed chart, with the two time helpers both use. Shared by `Platen.Replay` and
+`Platen.Timeline`.
 -/
 
 namespace Platen
@@ -24,5 +25,13 @@ def secondOf (timeMs : Nat) : Nat := (timeMs - 1) / 1000
 
 theorem secondOf_mono {a b : Nat} (h : a ≤ b) : secondOf a ≤ secondOf b := by
   unfold secondOf; exact Nat.div_le_div_right (by omega)
+
+/-- `scored_ms`: the duration the scores are computed over, the test's length rounded to the
+nearest 10 ms, halves up. -/
+def scoredMs (elapsedMs : Nat) : Nat := (elapsedMs + 5) / 10 * 10
+
+/-- The rounding lands on a multiple of 10 at most 5 ms away. -/
+theorem scoredMs_near (e : Nat) : e ≤ scoredMs e + 5 ∧ scoredMs e ≤ e + 5 ∧ scoredMs e % 10 = 0 := by
+  unfold scoredMs; omega
 
 end Platen

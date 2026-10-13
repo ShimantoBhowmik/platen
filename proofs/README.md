@@ -25,7 +25,8 @@ A successful build means every theorem is proven. The build treats warnings as e
   never reaches the end of a time test's text, which is why the replay may answer `TooFast`
   when one does. `time_wordCount_minimal` proves the text is no longer than that requires.
 - `Platen/Marks.lean` holds the per-second record that the scoring replay keeps for the speed
-  chart.
+  chart, and `scoredMs`, the rounding of a test's length to the nearest 10 ms that the scores
+  are computed over.
 - `Platen/Words.lean` models the word generator in `server/src/words.rs`, bit for bit: a
   `#guard` reproduces the sequence the Rust test pins. It proves that `below_excluding` maps
   its draws one to one onto the allowed indices, that a word never repeats either of the two
@@ -46,8 +47,9 @@ A successful build means every theorem is proven. The build treats warnings as e
   `time_test_tooFast` prove the same for a time test, up to the point where the text runs
   out. There the server answers `TooFast`, and only above the speed cap.
 - `Platen/Timeline.lean` models `timeline` in `server/src/scoring.rs`. It proves the chart has
-  one point per scored second, that each point gets the keys and errors of its own second, and
-  `timeline_last`: the last point counts the test's final characters through its full
+  one point per scored second, that each point gets the keys and errors of its own second,
+  `timeline_span`: every point spans at least 495 ms, so no raw speed divides by zero, and
+  `timeline_last`: the last point counts the test's final characters through the scored
   duration, so it equals the test's WPM.
 - `Platen/KeyOrder.lean` models `weaker_first`, the comparator that sorts the weakest keys. It
   proves the comparator is a total order, which Rust's sort requires (since Rust 1.81 a sort

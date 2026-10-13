@@ -65,8 +65,9 @@ pub struct KeyStat {
     pub key: char,
     /// Keystrokes that typed this key where the text expected it.
     pub hits: u32,
-    /// Keystrokes that typed something else where the text expected this key. A space that
-    /// commits a mistyped full-length word counts as a missed space.
+    /// Keystrokes that typed something else where the text expected this key. A space is a
+    /// hit where the text has one: after as many letters as the word has, right or wrong. A
+    /// space on the last word, which has none after it, is a missed space.
     pub misses: u32,
 }
 
@@ -532,19 +533,21 @@ impl<'t> Replay<'t> {
             // Typing tests ignore a space before any letter of a word.
             return false;
         }
+        let target = self.target();
         // A premature space misses the next letter; after a full word it is the space itself.
-        let expected = self
-            .target()
+        let expected = target
             .as_bytes()
             .get(self.word_chars)
             .copied()
             .unwrap_or(b' ');
-        let correct = self.current_word() == self.target();
-        self.record(correct, Some(expected));
+        // The space is the right key where the text has one: after as many letters as the word
+        // has, whether or not they are right. The last word has no space after it.
+        let in_place = !self.is_last_word() && self.word_chars == target.len();
+        self.record(in_place, Some(expected));
         if self.is_last_word() {
             return true;
         }
-        if correct {
+        if self.current_word() == target {
             // A correct word is locked against backspace, so this credit is never taken back.
             // Word lengths are tiny, so the cast cannot truncate.
             self.committed_correct_chars += self.word_chars as u32 + 1;
@@ -789,7 +792,59 @@ mod tests {
         let elapsed_minutes = f64::from(*times.last().expect("non-empty")) / 60_000.0;
         let credited = keys.len() - words[0].len() - 1;
         assert_eq!(stats.wpm, round2(credited as f64 / 5.0 / elapsed_minutes));
-        assert_eq!(stats.incorrect_keystrokes as usize, words[0].len() + 1);
+        // The space after the full-length wrong word is where the text has one, so it is right.
+        assert_eq!(stats.incorrect_keystrokes as usize, words[0].len());
+    }
+
+    #[test]
+    fn space_after_a_full_length_wrong_word_is_a_hit() {
+        let words = targets(TestMode::Words10);
+        let first = words[0];
+        let last = first.as_bytes()[first.len() - 1];
+        let typo = format!("{}{}", &first[..first.len() - 1], wrong_letter(last));
+        let keys = format!("{typo} {}", perfect_keys(&words[1..]));
+        let times = human_times(keys.len());
+
+        let scored = score_late(TestMode::Words10, &keys, &times).expect("valid submission");
+
+        assert_eq!(scored.stats.correct_keystrokes as usize, keys.len() - 1);
+        assert_eq!(scored.stats.incorrect_keystrokes, 1);
+        assert_eq!(
+            scored.stats.accuracy,
+            round2((keys.len() - 1) as f64 * 100.0 / keys.len() as f64)
+        );
+        assert_eq!(
+            key_stat(&scored.breakdown, ' '),
+            Some(KeyStat {
+                key: ' ',
+                hits: 9,
+                misses: 0
+            })
+        );
+    }
+
+    #[test]
+    fn space_on_the_last_word_is_a_miss() {
+        let words = targets(TestMode::Words10);
+        let last = words[9];
+        let first = last.as_bytes()[0];
+        // The same full-length typo as above, but on the last word, which has no space after it.
+        let typo = format!("{}{}", wrong_letter(first), &last[1..]);
+        let keys = format!("{} {typo} ", perfect_keys(&words[..9]));
+        let times = human_times(keys.len());
+
+        let scored = score_late(TestMode::Words10, &keys, &times).expect("valid submission");
+
+        assert_eq!(scored.stats.correct_keystrokes as usize, keys.len() - 2);
+        assert_eq!(scored.stats.incorrect_keystrokes, 2);
+        assert_eq!(
+            key_stat(&scored.breakdown, ' '),
+            Some(KeyStat {
+                key: ' ',
+                hits: 9,
+                misses: 1
+            })
+        );
     }
 
     #[test]
@@ -1052,14 +1107,6 @@ mod tests {
         assert_eq!(
             key_stat(&breakdown, char::from(last)).map(|stat| stat.misses),
             Some(1)
-        );
-        assert_eq!(
-            key_stat(&breakdown, ' '),
-            Some(KeyStat {
-                key: ' ',
-                hits: 8,
-                misses: 1
-            })
         );
     }
 

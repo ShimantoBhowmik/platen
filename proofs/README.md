@@ -36,7 +36,9 @@ A successful build means every theorem is proven. The build treats warnings as e
   text well formed, so every slice and index in the Rust is in bounds. It also proves that
   the per-second marks ascend and that their counts add up to exactly the keystrokes the
   score counts. A correct word is never reopened (`step_lock`), and the WPM credit equals
-  the committed correct words plus their spaces. `tooFast_sound` proves that a time test
+  the committed correct words plus their spaces. `space_hit_iff` proves that a space counts
+  as a hit exactly when it falls where the text has one: not on the last word, and after as
+  many letters as the word has, right or wrong. `tooFast_sound` proves that a time test
   reaching its end is genuinely above the speed cap.
 - `Platen/Session.lean` models the client's copy of those rules in `web/src/session.rs`.
   `word_test_refines` proves that, for any keys the learner presses, the server replays the

@@ -70,9 +70,9 @@ test("a typed word test is scored, stored, ranked and single-use", async ({ requ
     expect(stats.wpm).toBeGreaterThan(0);
     expect(stats.raw_wpm).toBeGreaterThanOrEqual(stats.wpm);
     expect(stats.accuracy).toBeLessThan(100);
-    // Word 2 kept a wrong letter, and the space that commits it wrong is a miss too. Word 4
+    // Word 2 kept a wrong letter; the space after it is still where the text has one. Word 4
     // had a corrected one.
-    expect(stats.incorrect_keystrokes).toBe(3);
+    expect(stats.incorrect_keystrokes).toBe(2);
     expect(breakdown.missed_words).toEqual([
         { expected: issued.words[2], typed: keys.split(" ")[2] },
     ]);

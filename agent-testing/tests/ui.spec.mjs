@@ -84,7 +84,7 @@ test("a word test typed on the keyboard ends in the verified result plate", asyn
     await expect(plate).toBeVisible();
     await expect(count).toHaveCount(0);
     await expect(page.locator("[data-corner=fig]")).toHaveText("Fig 2");
-    await expect(page.locator("[data-corner=readout]")).toHaveText("verified by the server");
+    await expect(page.locator("[data-corner=readout]")).toHaveText("");
     const [wpmShown, accuracyShown] = await plate.locator(".tw-figures dd").allTextContents();
     expect(Math.abs(Number.parseInt(wpmShown, 10) - stats.wpm)).toBeLessThanOrEqual(0.5);
     expect(Math.abs(Number.parseInt(accuracyShown, 10) - stats.accuracy)).toBeLessThanOrEqual(0.5);
@@ -130,6 +130,16 @@ test("a word test typed on the keyboard ends in the verified result plate", asyn
     await expect(page.locator("[data-corner=readout]")).toHaveText("ready");
     await expect(page.locator("[data-corner=fig]")).toHaveText("Fig 1");
     await expect(count).toHaveText("0/10");
+
+    // So does Tab then Enter, also in the middle of a test.
+    await page.keyboard.press("x");
+    await expect(page.locator("[data-corner=readout]")).toHaveText("typing");
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("button", { name: "Tab + Enter restarts" })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("[data-corner=readout]")).toHaveText("ready");
+    await expect(count).toHaveText("0/10");
+    await expect(page.locator("#tw-stage")).toBeFocused();
 });
 
 test("a time test counts down and is scored at its limit", async ({ page }, testInfo) => {
@@ -232,7 +242,7 @@ test.describe("error states", () => {
         await expect(page.locator("[data-corner=readout]")).toHaveText(
             "Not scored: the keystroke rhythm is too regular to be human.",
         );
-        await expect(page.locator("[data-corner=hint]")).toHaveText("Esc to try again");
+        await expect(page.locator("[data-corner=hint]")).toHaveText("Tab + Enter to try again");
     });
 
     test("an unreachable server is reported on load", async ({ page }, testInfo) => {

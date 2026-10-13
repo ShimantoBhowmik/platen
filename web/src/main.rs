@@ -279,40 +279,37 @@ fn App() -> Element {
         });
     };
 
-    let mut animate =
-        move |effect: Effect, key: Option<usize>, printed: bool, line_changed: bool| {
-            let space = matches!(effect, Effect::Spaced { .. });
-            let struck = matches!(effect, Effect::Struck { .. } | Effect::Finished) && printed;
-            motion.set(Motion {
-                key,
-                space,
-                strike: struck && !calm,
-                returning: line_changed,
-                bell: motion().bell,
+    let mut animate = move |effect: Effect, key: Option<usize>, line_changed: bool| {
+        motion.set(Motion {
+            key,
+            space: matches!(effect, Effect::Spaced),
+            strike: matches!(effect, Effect::Struck | Effect::Finished) && !calm,
+            returning: line_changed,
+            bell: motion().bell,
+        });
+        if sound_on() {
+            sound::play(match effect {
+                Effect::Spaced if line_changed => Cue::Return,
+                Effect::Spaced => Cue::Space,
+                Effect::Backed => Cue::Backspace,
+                _ => Cue::Clack,
             });
-            if sound_on() {
-                sound::play(match effect {
-                    Effect::Spaced { .. } if line_changed => Cue::Return,
-                    Effect::Spaced { .. } => Cue::Space,
-                    Effect::Backed => Cue::Backspace,
-                    _ => Cue::Clack,
+        }
+        let this = generation();
+        spawn(async move {
+            TimeoutFuture::new(STRIKE_MS).await;
+            motion.with_mut(|m| m.strike = false);
+            TimeoutFuture::new(KEY_MS - STRIKE_MS).await;
+            if generation() == this {
+                motion.with_mut(|m| {
+                    m.key = None;
+                    m.space = false;
                 });
             }
-            let this = generation();
-            spawn(async move {
-                TimeoutFuture::new(STRIKE_MS).await;
-                motion.with_mut(|m| m.strike = false);
-                TimeoutFuture::new(KEY_MS - STRIKE_MS).await;
-                if generation() == this {
-                    motion.with_mut(|m| {
-                        m.key = None;
-                        m.space = false;
-                    });
-                }
-                TimeoutFuture::new(400).await;
-                motion.with_mut(|m| m.returning = false);
-            });
-        };
+            TimeoutFuture::new(400).await;
+            motion.with_mut(|m| m.returning = false);
+        });
+    };
 
     let mut ring_bell = move || {
         motion.with_mut(|m| m.bell = true);
@@ -380,12 +377,7 @@ fn App() -> Element {
             Stroke::Back => FIGURE.key_index('\u{8}'),
             Stroke::Char(c) => FIGURE.key_index(c),
         };
-        animate(
-            effect,
-            key,
-            matches!(stroke, Stroke::Char(_)),
-            line_after != line_before,
-        );
+        animate(effect, key, line_after != line_before);
         if col + BELL_AT >= FIGURE.text.cols && bell_line() != Some(line_after) {
             bell_line.set(Some(line_after));
             ring_bell();

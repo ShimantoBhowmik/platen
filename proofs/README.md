@@ -31,6 +31,18 @@ A successful build means every theorem is proven. The build treats warnings as e
   its draws one to one onto the allowed indices, that a word never repeats either of the two
   before it, that each index is hit by `floor(2^64 / bound)` or `ceil(2^64 / bound)` draws,
   and that a shorter text is a prefix of a longer one from the same seed.
+- `Platen/Replay.lean` models the keystroke replay in `server/src/scoring.rs` with the
+  Rust's own string bookkeeping. `run_ok` proves that every accepted replay keeps the typed
+  text well formed, so every slice and index in the Rust is in bounds. It also proves that
+  the per-second marks ascend and that their counts add up to exactly the keystrokes the
+  score counts. A correct word is never reopened (`step_lock`), and the WPM credit equals
+  the committed correct words plus their spaces. `tooFast_sound` proves that a time test
+  reaching its end is genuinely above the speed cap.
+- `Platen/Session.lean` models the client's copy of those rules in `web/src/session.rs`.
+  `word_test_refines` proves that, for any keys the learner presses, the server replays the
+  client's key log to exactly the words the client shows. `time_test_refines` and
+  `time_test_tooFast` prove the same for a time test, up to the point where the text runs
+  out. There the server answers `TooFast`, and only above the speed cap.
 - `Platen/Timeline.lean` models `timeline` in `server/src/scoring.rs`. It proves the chart has
   one point per scored second, that each point gets the keys and errors of its own second, and
   `timeline_last`: the last point counts the test's final characters through its full

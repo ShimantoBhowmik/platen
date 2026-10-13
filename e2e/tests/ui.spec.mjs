@@ -1,6 +1,8 @@
 // The app in a real browser: typing with the keyboard, the countdown, the server-verified
 // result plate, preferences and error states. Runs at desktop, laptop and phone sizes.
 
+import { readFileSync } from "node:fs";
+
 import {
     expect,
     keysWithMistakes,
@@ -42,15 +44,20 @@ async function chooseMode(page, kind, label) {
     return words;
 }
 
+/** Cells a line of copy wraps at, read from the figure the app embeds. */
+const WRAP = JSON.parse(
+    readFileSync(new URL("../../web/assets/typewriter.json", import.meta.url), "utf8"),
+).text.wrap;
+
 /**
- * The sheet's lines: at most eleven words and at most 76 cells each, the same rule the app
- * lays the copy out with.
+ * The sheet's lines: at most eleven words and at most `WRAP` cells each, the same rule the
+ * app lays the copy out with.
  */
 function sheetLines(words) {
     const lines = [[]];
     for (const word of words) {
         const line = lines[lines.length - 1];
-        if (line.length === 11 || [...line, word].join(" ").length > 76) lines.push([word]);
+        if (line.length === 11 || [...line, word].join(" ").length > WRAP) lines.push([word]);
         else line.push(word);
     }
     return lines.map((line) => line.join(" "));

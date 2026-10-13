@@ -18,12 +18,12 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ASSETS = join(HERE, "..", "..", "web", "assets");
 const OUT = join(ASSETS, "typewriter.json");
 
-// Type on the sheet: pica-like pitch, one cell per character. 80 cells hold eleven common
-// words with room to spare.
-const CELL = 12.5;
-const COLS = 80;
-const LINE_H = 32;
-const FONT = 21;
+// Type on the sheet: one cell per character. 60 cells across the same paper width make an
+// eleven-word line of common words fill most of the sheet.
+const CELL = 1000 / 60;
+const COLS = 60;
+const LINE_H = 43;
+const FONT = 28;
 const MARGIN = 18;
 // Lines of copy shown on the sheet at once.
 const ROWS = 3;

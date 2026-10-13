@@ -13,8 +13,9 @@ isometric kit (`figure/kit/`, MIT). It writes `web/assets/typewriter.json` and
 node scripts/figure/build.mjs
 ```
 
-Add `--preview` to also write `scripts/figure/preview.html` and `preview-light.html`,
-standalone pages for visual checks. They are git-ignored.
+Add `--preview` to also write `scripts/figure/preview.html`, a standalone page for visual
+checks. Add `--light` as well to write `preview-light.html` in the light theme instead, and
+`--col=<n>` to put the type element over column `n` (default 30). The previews are git-ignored.
 
 ## Word list
 

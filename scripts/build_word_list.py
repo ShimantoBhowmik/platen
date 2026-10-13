@@ -1,4 +1,4 @@
-"""Builds server/words/english.txt: the 1,000 most common everyday English words.
+"""Builds server/words/english.txt: the 200 most common everyday English words.
 
 Source: wordfreq 3.1.1 (https://github.com/rspeer/wordfreq), whose word frequency data is
 licensed CC BY-SA 4.0. The generated list is therefore also CC BY-SA 4.0; see
@@ -9,8 +9,11 @@ Run in a virtualenv with `pip install wordfreq==3.1.1`:
     python scripts/build_word_list.py
 
 The list keeps wordfreq's frequency order and drops words that do not belong in a typing
-drill: anything that is not plain lowercase letters, single letters other than "a", and the
-words in EXCLUDED below.
+drill: anything that is not plain lowercase letters, single letters other than "a", words
+longer than MAX_LENGTH letters, and the words in EXCLUDED below.
+
+A small pool of short, very common words makes the text flow: each word comes back several
+times in a test, so the typist builds muscle memory instead of reading.
 """
 
 import re
@@ -18,7 +21,8 @@ from pathlib import Path
 
 from wordfreq import top_n_list
 
-SIZE = 1000
+SIZE = 200
+MAX_LENGTH = 8
 
 EXCLUDED = set(
     # Profanity, sexual and violent terms.
@@ -45,6 +49,8 @@ def build() -> list[str]:
         if not re.fullmatch(r"[a-z]+", word):
             continue
         if len(word) == 1 and word != "a":
+            continue
+        if len(word) > MAX_LENGTH:
             continue
         if word in EXCLUDED:
             continue

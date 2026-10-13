@@ -143,6 +143,25 @@ fn mode_label(spec: ModeSpec) -> String {
     }
 }
 
+/// Milliseconds until the whole seconds left on a countdown change, or until it ends.
+///
+/// The clock sleeps this long between renders, so a running time test renders once a second
+/// instead of polling.
+///
+/// # Arguments
+///
+/// * `left_ms` - Milliseconds left on the countdown
+///
+/// # Returns
+///
+/// The wait, at least 1 ms, so a countdown at a whole second waits a full second
+fn ms_until_next_second(left_ms: f64) -> u32 {
+    // A countdown shows `ceil(left / 1000)`, which drops when `left` reaches the next lower
+    // multiple of 1000.
+    let next_change = ((left_ms / 1_000.0).ceil() - 1.0) * 1_000.0;
+    (left_ms - next_change).max(1.0).ceil() as u32
+}
+
 /// Everything the machine animates, set by a key press and cleared by timers.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 struct Motion {
@@ -223,18 +242,20 @@ fn App() -> Element {
 
     let run_clock = move || {
         let this = generation();
+        // A word test shows words typed, not time, so only a time test needs the clock.
+        let Some(limit) = mode().limit_ms().map(f64::from) else {
+            return;
+        };
         spawn(async move {
             loop {
-                TimeoutFuture::new(100).await;
+                let left = limit - started().map_or(0.0, |start| now_ms() - start);
+                TimeoutFuture::new(ms_until_next_second(left)).await;
                 if generation() != this || phase() != Phase::Running {
                     return;
                 }
                 now.set(now_ms());
                 let elapsed = started().map_or(0.0, |start| now() - start);
-                if mode()
-                    .limit_ms()
-                    .is_some_and(|limit| elapsed >= f64::from(limit))
-                {
+                if elapsed >= limit {
                     session.with_mut(|s| {
                         if let Some(s) = s {
                             s.finish();
@@ -319,12 +340,21 @@ fn App() -> Element {
         let at = now_ms();
         let start = started().unwrap_or(at);
         let time_ms = (at - start).max(0.0) as u32;
-        let Some(mut typed) = session() else { return };
-        let line_before = typed.current_line();
-        let effect = typed.press(stroke, time_ms);
-        let line_after = typed.current_line();
-        let col = typed.cursor_col();
-        session.set(Some(typed));
+        // Pressing the key in place; `session()` would clone every issued word on each key.
+        let pressed = session.with_mut(|typed| {
+            let typed = typed.as_mut()?;
+            let line_before = typed.current_line();
+            let effect = typed.press(stroke, time_ms);
+            Some((
+                line_before,
+                effect,
+                typed.current_line(),
+                typed.cursor_col(),
+            ))
+        });
+        let Some((line_before, effect, line_after, col)) = pressed else {
+            return;
+        };
         now.set(at);
         if effect == Effect::Ignored {
             return;
@@ -368,7 +398,8 @@ fn App() -> Element {
     };
 
     let elapsed_ms = started().map_or(0.0, |start| now() - start).max(0.0) as u32;
-    let typed = session();
+    // A borrow, not a clone: the page renders several times per key.
+    let typed = session.read();
     let spec = mode();
     let current = phase();
     let done = match current {
@@ -564,7 +595,7 @@ fn App() -> Element {
                         role: "img",
                         "aria-label": "{FIGURE.label}",
                         style: "{vars}",
-                        g { dangerous_inner_html: "{FIGURE.back}" }
+                        Layer { markup: Markup(&FIGURE.back) }
                         g { transform: "{FIGURE.copy_matrix}",
                             for (baseline, copy) in upcoming {
                                 for (col, character) in copy.chars().enumerate().filter(|(_, c)| *c != ' ') {
@@ -579,10 +610,10 @@ fn App() -> Element {
                                 }
                             }
                         }
-                        g { class: "tw-hammer", "data-on": "{m.bell}", dangerous_inner_html: "{FIGURE.hammer}" }
+                        g { class: "tw-hammer", "data-on": "{m.bell}", Layer { markup: Markup(&FIGURE.hammer) } }
                         g { class: "tw-carriage", "data-return": "{m.returning}", style: "{carriage}",
-                            g { dangerous_inner_html: "{FIGURE.carriage_back}" }
-                            g { dangerous_inner_html: "{FIGURE.sheet}" }
+                            Layer { markup: Markup(&FIGURE.carriage_back) }
+                            Layer { markup: Markup(&FIGURE.sheet) }
                             g { transform: "{FIGURE.paper_matrix}",
                                 clipPath { id: "tw-sheet-clip",
                                     rect {
@@ -616,18 +647,18 @@ fn App() -> Element {
                                     }
                                 }
                             }
-                            g { dangerous_inner_html: "{FIGURE.carriage_front}" }
+                            Layer { markup: Markup(&FIGURE.carriage_front) }
                         }
-                        g { dangerous_inner_html: "{FIGURE.front}" }
-                        g { class: "tw-vibrator", "data-on": "{m.strike.is_some()}", dangerous_inner_html: "{FIGURE.vibrator}" }
-                        g { dangerous_inner_html: "{FIGURE.mark}" }
+                        Layer { markup: Markup(&FIGURE.front) }
+                        g { class: "tw-vibrator", "data-on": "{m.strike.is_some()}", Layer { markup: Markup(&FIGURE.vibrator) } }
+                        Layer { markup: Markup(&FIGURE.mark) }
                         for (index, key) in FIGURE.keys.iter().enumerate() {
-                            g { key: "{index}", class: "tw-key", "data-down": "{m.key == Some(index)}", dangerous_inner_html: "{key.svg}" }
+                            g { key: "{index}", class: "tw-key", "data-down": "{m.key == Some(index)}", Layer { markup: Markup(&key.svg) } }
                         }
-                        g { class: "tw-key", "data-down": "{m.space}", dangerous_inner_html: "{FIGURE.space}" }
+                        g { class: "tw-key", "data-down": "{m.space}", Layer { markup: Markup(&FIGURE.space) } }
                         if let Some(character) = m.strike {
                             if let Some(bar) = FIGURE.strikes.get(&character.to_ascii_lowercase()) {
-                                g { dangerous_inner_html: "{bar}" }
+                                Layer { markup: Markup(bar) }
                             }
                         }
                     }
@@ -670,6 +701,29 @@ fn App() -> Element {
     }
 }
 
+/// Static figure markup, borrowed from [`FIGURE`] for the life of the program.
+///
+/// Two values are equal when they point at the same markup. That makes the comparison
+/// constant-time: a re-render of the page skips every [`Layer`] without copying or diffing its
+/// markup, which is about 1 MB in all.
+#[derive(Debug, Clone, Copy)]
+struct Markup(&'static str);
+
+impl PartialEq for Markup {
+    fn eq(&self, other: &Self) -> bool {
+        // `ptr::eq` compares addresses and lengths, like Python's `is`, not the contents.
+        std::ptr::eq(self.0, other.0)
+    }
+}
+
+/// A group of static figure markup, rendered once and then skipped on every re-render.
+#[component]
+fn Layer(markup: Markup) -> Element {
+    rsx! {
+        g { dangerous_inner_html: markup.0 }
+    }
+}
+
 /// One character cell on the sheet.
 #[component]
 fn SheetCell(cell: session::Cell, line_is_current: bool) -> Element {
@@ -697,5 +751,28 @@ fn SheetCell(cell: session::Cell, line_is_current: bool) -> Element {
             text { class: "tw-ink tw-copy", x: "{x:.2}", y: "{y:.2}", font_size: "{size}", text_anchor: "middle", "{copy}" }
             text { class: "tw-ink tw-miss", x: "{x:.2}", y: "{y + 2.0:.2}", font_size: "{size}", text_anchor: "middle", "_" }
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clock_wakes_when_the_shown_second_changes() {
+        assert_eq!(ms_until_next_second(29_500.0), 500);
+        assert_eq!(ms_until_next_second(29_000.0), 1_000);
+        assert_eq!(ms_until_next_second(28_999.2), 1_000);
+        assert_eq!(ms_until_next_second(0.4), 1);
+    }
+
+    #[test]
+    fn markup_is_equal_only_to_the_same_markup() {
+        let back = Markup(&FIGURE.back);
+        let same_text_elsewhere = Markup(Box::leak(FIGURE.back.clone().into_boxed_str()));
+
+        assert_eq!(back, Markup(&FIGURE.back));
+        assert_ne!(back, same_text_elsewhere);
+        assert_ne!(back, Markup(&FIGURE.front));
     }
 }

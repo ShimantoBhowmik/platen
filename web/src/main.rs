@@ -354,6 +354,11 @@ fn App() -> Element {
         }
     };
 
+    let fresh_sheet = move |_| {
+        load(mode());
+        focus_stage();
+    };
+
     let choose = move |spec: ModeSpec| {
         move |_| {
             mode.set(spec);
@@ -389,13 +394,13 @@ fn App() -> Element {
         Phase::Ready => "ready".to_owned(),
         Phase::Running => "typing".to_owned(),
         Phase::Scoring => "checking the sheet".to_owned(),
-        Phase::Done(_) => "verified by the server".to_owned(),
+        Phase::Done(_) => String::new(),
         Phase::Failed(ref message) => message.clone(),
     };
     let hint = match current {
-        Phase::Ready => "Type to begin · Esc for a fresh sheet",
-        Phase::Running | Phase::Done(_) => "Esc for a fresh sheet",
-        Phase::Failed(_) => "Esc to try again",
+        Phase::Ready => "Type to begin · Tab + Enter restarts",
+        Phase::Running | Phase::Done(_) => "Tab + Enter restarts",
+        Phase::Failed(_) => "Tab + Enter to try again",
         Phase::Loading | Phase::Scoring => "",
     };
     let status = match current {
@@ -514,10 +519,7 @@ fn App() -> Element {
                     button {
                         class: "tw-chip",
                         r#type: "button",
-                        onclick: move |_| {
-                            load(mode());
-                            focus_stage();
-                        },
+                        onclick: fresh_sheet,
                         "new sheet"
                     }
                 }
@@ -526,8 +528,7 @@ fn App() -> Element {
                 div { class: "iso-plate-corners",
                     span { class: "iso-plate-corner", "data-corner": "fig", if done.is_some() { "Fig 2" } else { "Fig 1" } }
                     span { class: "iso-plate-corner", "data-corner": "title", "{title}" }
-                    span { class: "iso-plate-corner", "data-corner": "hint", "{hint}" }
-                    span { class: "iso-plate-corner tw-readout", "data-corner": "readout", "data-phase": if done.is_some() { "done" } else { "" }, "{readout}" }
+                    span { class: "iso-plate-corner tw-readout", "data-corner": "readout", "{readout}" }
                 }
                 if let Some((big, small)) = countdown {
                     div {
@@ -550,7 +551,7 @@ fn App() -> Element {
                     role: if done.is_some() { "region" } else { "application" },
                     style: "{crop}",
                     "data-done": "{done.is_some()}",
-                    aria_label: if done.is_some() { "Result. Escape gives a fresh sheet." } else { "Typewriter. Type the faint text on the sheet. Escape gives a fresh sheet." },
+                    aria_label: if done.is_some() { "Result. Tab then Enter, or Escape, gives a fresh sheet." } else { "Typewriter. Type the faint text on the sheet. Tab then Enter, or Escape, gives a fresh sheet." },
                     autofocus: true,
                     onclick: move |_| focus_stage(),
                     onkeydown,
@@ -635,6 +636,19 @@ fn App() -> Element {
                         p { class: "tw-sr", "Current line: {line.trim_end()}" }
                     }
                     p { class: "tw-sr", role: "status", aria_live: "polite", "{status}" }
+                }
+                // After the stage in document order, so Tab from the stage lands here and
+                // Enter presses it.
+                if !hint.is_empty() {
+                    div { class: "iso-plate-corners",
+                        button {
+                            class: "iso-plate-corner tw-restart",
+                            "data-corner": "hint",
+                            r#type: "button",
+                            onclick: fresh_sheet,
+                            "{hint}"
+                        }
+                    }
                 }
             }
             footer { class: "iso-legend tw-legend",

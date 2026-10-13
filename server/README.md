@@ -45,8 +45,8 @@ Modes are `{ "mode": "time", "amount": 15 | 30 | 60 | 120 }` or
 Starts a test. Send a mode. The response holds an opaque `token` and the `words` to type. A
 time test gets enough words for the 350 WPM keystroke cap.
 
-The words are drawn from the 1,000 most common everyday English words in
-`words/english.txt`. That list is derived from wordfreq and licensed CC BY-SA 4.0; see
+The words are drawn from the 200 most common everyday English words in `words/english.txt`.
+A word never repeats either of the two words before it. That list is derived from wordfreq and licensed CC BY-SA 4.0; see
 `words/README.md` for the source, the filters and the attribution.
 
 ### `POST /api/results`

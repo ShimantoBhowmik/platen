@@ -39,10 +39,15 @@ test("every mode issues a test with common lowercase words", async ({ request })
         expect(issued.mode).toEqual({ mode, amount });
         if (mode === "words") expect(issued.words).toHaveLength(amount);
         else expect(issued.words.length).toBeGreaterThan(amount * 5);
-        for (const word of issued.words) expect(word).toMatch(/^[a-z]+$/);
+        for (const [index, word] of issued.words.entries()) {
+            expect(word).toMatch(/^[a-z]{1,8}$/);
+            // A word never repeats either of the two words before it.
+            expect(issued.words.slice(Math.max(0, index - 2), index)).not.toContain(word);
+        }
     }
-    // The text draws on the 1,000-word list, so these tests use far more than 200 words.
-    expect(distinct.size).toBeGreaterThan(300);
+    // The text draws on a small 200-word list, and the long time tests cover most of it.
+    expect(distinct.size).toBeGreaterThan(150);
+    expect(distinct.size).toBeLessThanOrEqual(200);
 });
 
 test("an unknown mode is refused", async ({ request }) => {

@@ -1,7 +1,8 @@
 # Word list
 
-`english.txt` holds the 1,000 most common everyday English words, most frequent first, one
-lowercase word per line. Tests draw their text from it at random. `scripts/build_word_list.py`
+`english.txt` holds the 200 most common everyday English words of at most 8 letters, most
+frequent first, one lowercase word per line. Tests draw their text from it at random, and a
+word never repeats either of the two words before it. `scripts/build_word_list.py`
 generates it; see that file for the filters and the words it excludes.
 
 ## License and attribution
@@ -10,7 +11,7 @@ generates it; see that file for the filters and the words it excludes.
 [wordfreq](https://github.com/rspeer/wordfreq) 3.1.1 by Robyn Speer, which is licensed under
 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). `english.txt` is therefore
 also licensed under CC BY-SA 4.0. The changes: only the most frequent plain lowercase words
-are kept, and the words listed in `scripts/build_word_list.py` are removed. The rest of this
+of at most 8 letters are kept, and the words listed in `scripts/build_word_list.py` are removed. The rest of this
 repository is not affected by this license.
 
 > Robyn Speer. (2022). rspeer/wordfreq: v3.0 (v3.0.2). Zenodo.
